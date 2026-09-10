@@ -1,15 +1,18 @@
 import { Routes, Route } from 'react-router-dom';
 import { ROUTES } from './routePaths';
 import ProtectedRoute from './ProtectedRoute';
+import RoleRoute from './RoleRoute';
 
-import MainLayout from '../components/layout/MainLayout';
 import AuthLayout from '../components/layout/AuthLayout';
+import AdminLayout from '../components/layout/AdminLayout';
+import HrLayout from '../components/layout/HrLayout';
 
 import LoginPage from '../pages/auth/LoginPage';
 import RegisterPage from '../pages/auth/RegisterPage';
 import ForgotPasswordPage from '../pages/auth/ForgotPasswordPage';
 
 import ProfilePage from '../pages/profile/ProfilePage';
+import SettingsPage from '../pages/settings/SettingsPage';
 import DashboardPage from '../pages/dashboard/DashboardPage';
 
 import JobListPage from '../pages/jobs/JobListPage';
@@ -41,26 +44,39 @@ const AppRoutes = () => {
 
       {/* Protected routes */}
       <Route element={<ProtectedRoute />}>
-        <Route element={<MainLayout />}>
-          <Route path={ROUTES.DASHBOARD} element={<DashboardPage />} />
-          <Route path={ROUTES.PROFILE} element={<ProfilePage />} />
+        {/* Admin: dashboard + admin-only pages, dark sidebar with Admin section */}
+        <Route element={<RoleRoute allow={['admin']} />}>
+          <Route element={<AdminLayout />}>
+            <Route path={ROUTES.DASHBOARD} element={<DashboardPage />} />
+            <Route path={ROUTES.PROFILE} element={<ProfilePage />} />
+            <Route path={ROUTES.SETTINGS} element={<SettingsPage />} />
 
-          <Route path={ROUTES.JOBS} element={<JobListPage />} />
-          <Route path={ROUTES.JOB_CREATE} element={<CreateJobPage />} />
-          <Route path={ROUTES.JOB_DETAILS} element={<JobDetailsPage />} />
-          <Route path={ROUTES.JOB_EDIT} element={<EditJobPage />} />
+            <Route path={ROUTES.ADMIN_USERS} element={<UserManagementPage />} />
+            <Route path={ROUTES.ADMIN_API_CONFIG} element={<ApiConfigurationPage />} />
+            <Route path={ROUTES.ADMIN_SYSTEM_STATUS} element={<SystemStatusPage />} />
+            <Route path={ROUTES.ADMIN_DATABASE_STATUS} element={<DatabaseStatusPage />} />
+          </Route>
+        </Route>
 
-          <Route path={ROUTES.CV_UPLOAD} element={<CvUploadPage />} />
+        {/* HR Manager: dashboard + workspace pages, no Admin section in sidebar */}
+        <Route element={<RoleRoute allow={['hr_manager']} />}>
+          <Route element={<HrLayout />}>
+            <Route path={ROUTES.DASHBOARD} element={<DashboardPage />} />
+            <Route path={ROUTES.PROFILE} element={<ProfilePage />} />
+            <Route path={ROUTES.SETTINGS} element={<SettingsPage />} />
 
-          <Route path={ROUTES.CANDIDATES} element={<CandidateListPage />} />
-          <Route path={ROUTES.CANDIDATE_DETAILS} element={<CandidateDetailsPage />} />
+            <Route path={ROUTES.JOBS} element={<JobListPage />} />
+            <Route path={ROUTES.JOB_CREATE} element={<CreateJobPage />} />
+            <Route path={ROUTES.JOB_DETAILS} element={<JobDetailsPage />} />
+            <Route path={ROUTES.JOB_EDIT} element={<EditJobPage />} />
 
-          <Route path={ROUTES.REPORTS} element={<ReportsPage />} />
+            <Route path={ROUTES.CV_UPLOAD} element={<CvUploadPage />} />
 
-          <Route path={ROUTES.ADMIN_USERS} element={<UserManagementPage />} />
-          <Route path={ROUTES.ADMIN_API_CONFIG} element={<ApiConfigurationPage />} />
-          <Route path={ROUTES.ADMIN_SYSTEM_STATUS} element={<SystemStatusPage />} />
-          <Route path={ROUTES.ADMIN_DATABASE_STATUS} element={<DatabaseStatusPage />} />
+            <Route path={ROUTES.CANDIDATES} element={<CandidateListPage />} />
+            <Route path={ROUTES.CANDIDATE_DETAILS} element={<CandidateDetailsPage />} />
+
+            <Route path={ROUTES.REPORTS} element={<ReportsPage />} />
+          </Route>
         </Route>
       </Route>
     </Routes>
