@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import {
   LayoutGrid,
@@ -14,6 +15,7 @@ import {
 } from 'lucide-react';
 import useAuth from '../../../hooks/useAuth';
 import { ROUTES } from '../../../routes/routePaths';
+import LogoutModal from '../../modals/LogoutModal';
 
 const workspaceLinks = [
   { to: '/', label: 'Dashboard', icon: LayoutGrid, end: true },
@@ -56,68 +58,78 @@ const SectionLabel = ({ children }) => (
 // role: 'admin' | 'hr_manager'
 const Sidebar = ({ role = 'admin' }) => {
   const navigate = useNavigate();
-  const { setUser } = useAuth();
+  const { user, logout } = useAuth();
+  const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
 
-  const handleLogout = () => {
-    localStorage.removeItem('token');
-    setUser(null);
-    navigate(ROUTES.LOGIN, { replace: true });
+  const handleConfirmLogout = () => {
+    logout();
+    setIsLogoutModalOpen(false);
+    navigate(ROUTES.LOGIN);
   };
 
   return (
-    <aside className="w-64 h-screen sticky top-0 overflow-y-auto bg-[#1B2559] flex flex-col justify-between">
-      <div>
-        {/* Brand */}
-        <div className="flex items-center gap-3 px-4 py-5">
-          <div className="w-9 h-9 rounded-lg bg-blue-600 text-white flex items-center justify-center font-semibold text-sm">
-            TL
+    <>
+      <aside className="w-64 min-h-screen bg-[#1B2559] flex flex-col justify-between">
+        <div>
+          {/* Brand */}
+          <div className="flex items-center gap-3 px-4 py-5">
+            <div className="w-9 h-9 rounded-lg bg-blue-600 text-white flex items-center justify-center font-semibold text-sm">
+              TL
+            </div>
+            <div>
+              <p className="text-white text-sm font-semibold leading-tight">TalentLens</p>
+              <p className="text-slate-400 text-xs leading-tight">CV Screening &amp; AI Match</p>
+            </div>
           </div>
-          <div>
-            <p className="text-white text-sm font-semibold leading-tight">TalentLens</p>
-            <p className="text-slate-400 text-xs leading-tight">CV Screening &amp; AI Match</p>
-          </div>
+
+          {/* Nav sections */}
+          <nav className="px-3">
+            <SectionLabel>Workspace</SectionLabel>
+            <div className="flex flex-col gap-1">
+              {workspaceLinks.map((link) => (
+                <NavItem key={link.to} {...link} />
+              ))}
+            </div>
+
+            {role === 'admin' && (
+              <>
+                <SectionLabel>Admin</SectionLabel>
+                <div className="flex flex-col gap-1">
+                  {adminLinks.map((link) => (
+                    <NavItem key={link.to} {...link} />
+                  ))}
+                </div>
+              </>
+            )}
+
+            <SectionLabel>Account</SectionLabel>
+            <div className="flex flex-col gap-1">
+              {accountLinks.map((link) => (
+                <NavItem key={link.to} {...link} />
+              ))}
+            </div>
+          </nav>
         </div>
 
-        {/* Nav sections */}
-        <nav className="px-3">
-          <SectionLabel>Workspace</SectionLabel>
-          <div className="flex flex-col gap-1">
-            {workspaceLinks.map((link) => (
-              <NavItem key={link.to} {...link} />
-            ))}
-          </div>
+        {/* Logout */}
+        <div className="px-3 pb-5">
+          <button
+            onClick={() => setIsLogoutModalOpen(true)}
+            className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-sm text-slate-200 bg-white/5 hover:bg-white/10 transition-colors cursor-pointer"
+          >
+            <LogOut size={16} />
+            <span>Logout</span>
+          </button>
+        </div>
+      </aside>
 
-          {role === 'admin' && (
-            <>
-              <SectionLabel>Admin</SectionLabel>
-              <div className="flex flex-col gap-1">
-                {adminLinks.map((link) => (
-                  <NavItem key={link.to} {...link} />
-                ))}
-              </div>
-            </>
-          )}
-
-          <SectionLabel>Account</SectionLabel>
-          <div className="flex flex-col gap-1">
-            {accountLinks.map((link) => (
-              <NavItem key={link.to} {...link} />
-            ))}
-          </div>
-        </nav>
-      </div>
-
-      {/* Logout */}
-      <div className="px-3 pb-5">
-        <button
-          onClick={handleLogout}
-          className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-sm text-slate-200 bg-white/5 hover:bg-white/10 transition-colors"
-        >
-          <LogOut size={16} />
-          <span>logout</span>
-        </button>
-      </div>
-    </aside>
+      <LogoutModal
+        isOpen={isLogoutModalOpen}
+        onClose={() => setIsLogoutModalOpen(false)}
+        onConfirm={handleConfirmLogout}
+        userEmail={user?.email}
+      />
+    </>
   );
 };
 
