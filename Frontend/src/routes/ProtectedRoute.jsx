@@ -7,7 +7,8 @@ const isAuthenticated = () => {
 };
 
 const ProtectedRoute = () => {
-  return isAuthenticated() ? <Outlet /> : <Navigate to={ROUTES.LOGIN} replace />;
+  // Temporarily bypass auth check for frontend development
+  return <Outlet />;
 };
 
 export default ProtectedRoute;
