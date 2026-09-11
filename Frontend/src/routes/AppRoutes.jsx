@@ -1,8 +1,7 @@
-import { Routes, Route, useLocation } from 'react-router-dom';
+import { Routes, Route } from 'react-router-dom';
 import { ROUTES } from './routePaths';
 import ProtectedRoute from './ProtectedRoute';
 import RoleRoute from './RoleRoute';
-import useAuth from '../hooks/useAuth';
 
 import AuthLayout from '../components/layout/AuthLayout';
 import AdminLayout from '../components/layout/AdminLayout';
@@ -33,16 +32,6 @@ import ApiConfigurationPage from '../pages/admin/ApiConfigurationPage';
 import SystemStatusPage from '../pages/admin/SystemStatusPage';
 import DatabaseStatusPage from '../pages/admin/DatabaseStatusPage';
 
-// Dynamically picks AdminLayout if visiting an /admin path or if the user is an admin,
-// otherwise defaults to HrLayout. This solves the sidebar mismatch during frontend testing.
-const RoleAwareLayout = () => {
-  const { user } = useAuth();
-  const location = useLocation();
-  const isAdminRoute = location.pathname.startsWith('/admin');
-
-  return (user?.role === 'admin' || isAdminRoute) ? <AdminLayout /> : <HrLayout />;
-};
-
 const AppRoutes = () => {
   return (
     <Routes>
@@ -53,9 +42,10 @@ const AppRoutes = () => {
         <Route path={ROUTES.FORGOT_PASSWORD} element={<ForgotPasswordPage />} />
       </Route>
 
-      {/* Protected routes: any authenticated user, admin or hr_manager */}
+      {/* Protected routes */}
       <Route element={<ProtectedRoute />}>
-        <Route element={<RoleAwareLayout />}>
+        {/* Workspace pages (HR Manager & general recruiter access) */}
+        <Route element={<HrLayout />}>
           <Route path={ROUTES.DASHBOARD} element={<DashboardPage />} />
           <Route path={ROUTES.PROFILE} element={<ProfilePage />} />
           <Route path={ROUTES.SETTINGS} element={<SettingsPage />} />
@@ -71,9 +61,11 @@ const AppRoutes = () => {
           <Route path={ROUTES.CANDIDATE_DETAILS} element={<CandidateDetailsPage />} />
 
           <Route path={ROUTES.REPORTS} element={<ReportsPage />} />
+        </Route>
 
-          {/* Admin-only pages, still inside the same protected shell */}
-          <Route element={<RoleRoute allow={['admin']} />}>
+        {/* Admin-only pages */}
+        <Route element={<RoleRoute allow={['admin']} />}>
+          <Route element={<AdminLayout />}>
             <Route path={ROUTES.ADMIN_USERS} element={<UserManagementPage />} />
             <Route path={ROUTES.ADMIN_API_CONFIG} element={<ApiConfigurationPage />} />
             <Route path={ROUTES.ADMIN_SYSTEM_STATUS} element={<SystemStatusPage />} />
