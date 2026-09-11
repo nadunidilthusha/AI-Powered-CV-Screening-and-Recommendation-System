@@ -1,8 +1,1055 @@
+import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import useAuth from '../../hooks/useAuth';
+import { ROUTES } from '../../routes/routePaths';
+import { 
+  Search, UploadCloud, Download, Filter, 
+  ChevronDown, Sparkles, Sliders, CheckCircle2, Calendar, 
+  UserCheck, Scale, RefreshCw, Send, ShieldCheck, FileText, 
+  Award, Check, ExternalLink, Layers 
+} from 'lucide-react';
+import ScheduleInterviewModal from '../../components/modals/ScheduleInterviewModal';
+import CustomizeWeightsModal from '../../components/modals/CustomizeWeightsModal';
+import '../../styles/pages.css';
+
 const CandidateListPage = () => {
+  const navigate = useNavigate();
+  const { showToast } = useAuth();
+
+  // Active Tab: 'pipeline' | 'recommendations'
+  const [activeTab, setActiveTab] = useState('pipeline');
+
+  // Shared Modals
+  const [interviewModalOpen, setInterviewModalOpen] = useState(false);
+  const [selectedCandidateForInterview, setSelectedCandidateForInterview] = useState('Dishan Perera');
+  const [weightsModalOpen, setWeightsModalOpen] = useState(false);
+
+  // ==========================================
+  // PIPELINE STATE (Screenshot 2)
+  // ==========================================
+  const [selectedRows, setSelectedRows] = useState({ 1: true });
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedExpBracket, setSelectedExpBracket] = useState('6+ Yrs');
+  const [skillsFilter, setSkillsFilter] = useState({
+    reactNext: true,
+    typescript: true,
+    python: false,
+    aws: true
+  });
+  const [availability, setAvailability] = useState('Immediate');
+
+  const candidates = [
+    {
+      id: 1,
+      name: 'Dishan Perera',
+      title: 'Lead Frontend Engineer',
+      matchPct: 96,
+      avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80',
+      skills: ['React 18', 'Next.js 14', 'TypeScript'],
+      expEdu: '6.2 Yrs • B.Sc. SE (First Class)',
+      status: 'Shortlisted'
+    },
+    {
+      id: 2,
+      name: 'Maya Lin',
+      title: 'Cloud Architect & Full Stack',
+      matchPct: 94,
+      avatar: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=100&auto=format&fit=crop&q=80',
+      skills: ['AWS', 'Python', 'FastAPI'],
+      expEdu: '8.0 Yrs • M.Sc. CS (Stanford)',
+      status: 'Under Review'
+    },
+    {
+      id: 3,
+      name: 'Lucas Vance',
+      title: 'Full Stack & LLM Integrator',
+      matchPct: 92,
+      avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&auto=format&fit=crop&q=80',
+      skills: ['LangChain', 'React', 'FastAPI'],
+      expEdu: '5.5 Yrs • B.Eng. Software',
+      status: 'Interviewing'
+    },
+    {
+      id: 4,
+      name: 'Tariq Al-Mansoor',
+      title: 'Staff Design Technologist',
+      matchPct: 89,
+      avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=100&auto=format&fit=crop&q=80',
+      skills: ['Figma Tokens', 'Storybook', 'CSS'],
+      expEdu: '7.1 Yrs • B.A. HCI & Design',
+      status: 'Shortlisted'
+    },
+    {
+      id: 5,
+      name: 'Ananya Rao',
+      title: 'Distributed Systems Architect',
+      matchPct: 88,
+      avatar: 'https://images.unsplash.com/photo-1580489944761-15a19d654956?w=100&auto=format&fit=crop&q=80',
+      skills: ['Golang', 'Kafka', 'K8s'],
+      expEdu: '9.4 Yrs • M.Tech Systems Eng',
+      status: 'Under Review'
+    }
+  ];
+
+  const handleSelectRow = (id) => {
+    setSelectedRows(prev => ({ ...prev, [id]: !prev[id] }));
+  };
+
+  const handleSelectAll = () => {
+    if (Object.keys(selectedRows).length === candidates.length) {
+      setSelectedRows({});
+    } else {
+      const all = {};
+      candidates.forEach(c => { all[c.id] = true; });
+      setSelectedRows(all);
+    }
+  };
+
+  const handleOpenInterview = (name) => {
+    setSelectedCandidateForInterview(name);
+    setInterviewModalOpen(true);
+  };
+
+  const handleResetFilters = () => {
+    setSearchQuery('');
+    setSelectedExpBracket('');
+    setSkillsFilter({ reactNext: true, typescript: true, python: false, aws: false });
+    setAvailability('Immediate');
+    showToast('Filters reset to default view.', 'info');
+  };
+
+  const handleExportCsv = () => {
+    showToast('Exporting candidate dataset to CSV format (SRS REQ-5.4)... Download ready!', 'success');
+  };
+
+  // ==========================================
+  // RECOMMENDATIONS STATE (Screenshot 1)
+  // ==========================================
+  const [weights, setWeights] = useState({ experience: 40, skills: 40, culture: 20 });
+  const [promptText, setPromptText] = useState('');
+  const [isRegenerating, setIsRegenerating] = useState(false);
+  const [shortlistedMap, setShortlistedMap] = useState({
+    dishan: true,
+    amaya: true,
+    nuwan: false
+  });
+
+  const handleToggleShortlist = (id) => {
+    setShortlistedMap(prev => {
+      const next = !prev[id];
+      showToast(next ? 'Candidate added to AI Shortlist.' : 'Candidate removed from Shortlist.', 'info');
+      return { ...prev, [id]: next };
+    });
+  };
+
+  const handleAddTag = (tag) => {
+    setPromptText(prev => (prev ? `${prev} ${tag}` : tag));
+  };
+
+  const handleRegenerate = () => {
+    setIsRegenerating(true);
+    setTimeout(() => {
+      setIsRegenerating(false);
+      showToast('Neural rank engine successfully re-scored candidates based on natural language criteria!', 'success');
+    }, 1200);
+  };
+
   return (
-    <div>
-      {/* TODO: implement CandidateListPage */}
-      <p>CandidateListPage</p>
+    <div className="page-wrapper">
+      {/* Top Tab Switcher */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20, borderBottom: '1px solid #e2e8f0', paddingBottom: 10, flexWrap: 'wrap', gap: 12 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <button
+            type="button"
+            className={`dossier-tab-btn ${activeTab === 'pipeline' ? 'active' : ''}`}
+            onClick={() => setActiveTab('pipeline')}
+            style={{ display: 'flex', alignItems: 'center', gap: 6 }}
+          >
+            <span>Candidate Pipeline</span>
+            <span style={{ fontSize: '0.7rem', padding: '2px 7px', borderRadius: 9999, background: activeTab === 'pipeline' ? 'rgba(255,255,255,0.25)' : '#e2e8f0', color: activeTab === 'pipeline' ? '#ffffff' : '#475569' }}>
+              48 Results
+            </span>
+          </button>
+
+          <button
+            type="button"
+            className={`dossier-tab-btn ${activeTab === 'recommendations' ? 'active' : ''}`}
+            onClick={() => setActiveTab('recommendations')}
+            style={{ display: 'flex', alignItems: 'center', gap: 6 }}
+          >
+            <Sparkles size={14} />
+            <span>AI Recommendations</span>
+            <span style={{ fontSize: '0.7rem', padding: '2px 7px', borderRadius: 9999, background: activeTab === 'recommendations' ? 'rgba(255,255,255,0.25)' : '#ecfdf5', color: activeTab === 'recommendations' ? '#ffffff' : '#059669' }}>
+              Engine 4.5
+            </span>
+          </button>
+        </div>
+
+        {/* Right Job Indicator */}
+        <div className="job-position-selector">
+          <button type="button" className="job-selector-btn" style={{ padding: '6px 12px' }}>
+            <CheckCircle2 size={15} color="#4f46e5" />
+            <span>Sr. Frontend Engineer (Req #FE-802)</span>
+            <ChevronDown size={13} color="#64748b" />
+          </button>
+        </div>
+      </div>
+
+      {/* =========================================================
+          TAB 1: CANDIDATE PIPELINE (Screenshot 2)
+          ========================================================= */}
+      {activeTab === 'pipeline' && (
+        <div className="animate-fade-in">
+          {/* Header Row */}
+          <div className="page-title-row" style={{ marginBottom: 20 }}>
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <h1 className="page-h1">Candidate Pipeline</h1>
+                <span style={{ background: '#ecfdf5', color: '#059669', fontSize: '0.725rem', fontWeight: 700, padding: '4px 10px', borderRadius: 9999, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                  <Sparkles size={12} /> AI Model v4.2 Active
+                </span>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              className="btn-primary"
+              style={{ width: 'auto', padding: '0 20px', height: 42 }}
+              onClick={() => showToast('CV Upload ingestion service active (SRS REQ-3.1/3.2). PDF Parsing queue ready.', 'info')}
+            >
+              <UploadCloud size={17} />
+              <span>Upload CV / Bulk Import</span>
+            </button>
+          </div>
+
+          {/* 4 Stat Cards */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 16, marginBottom: 24 }}>
+            <div className="mini-stat-card">
+              <span style={{ fontSize: '0.7rem', fontWeight: 700, color: '#64748b' }}>TOTAL SCREENED</span>
+              <div className="stat-num-row">
+                <span className="stat-big-num">1,420</span>
+                <span className="stat-trend">↗ +18% vs. previous sprint</span>
+              </div>
+            </div>
+
+            <div className="mini-stat-card">
+              <span style={{ fontSize: '0.7rem', fontWeight: 700, color: '#64748b' }}>AI SHORTLISTED</span>
+              <div className="stat-num-row">
+                <span className="stat-big-num">48</span>
+                <span style={{ fontSize: '0.725rem', color: '#4f46e5', fontWeight: 700 }}>Top 3.4% of candidate pool</span>
+              </div>
+              <div className="bar-track" style={{ marginTop: 8 }}>
+                <div className="bar-fill" style={{ width: '34%' }} />
+              </div>
+            </div>
+
+            <div className="mini-stat-card">
+              <span style={{ fontSize: '0.7rem', fontWeight: 700, color: '#64748b' }}>AVERAGE MATCH</span>
+              <div className="stat-num-row">
+                <span className="stat-big-num">91.4%</span>
+                <span style={{ fontSize: '0.725rem', color: '#059669', fontWeight: 700 }}>● Confidence Score: High</span>
+              </div>
+              <div className="bar-track" style={{ marginTop: 8 }}>
+                <div className="bar-fill" style={{ width: '91%', background: '#10b981' }} />
+              </div>
+            </div>
+
+            <div className="mini-stat-card">
+              <span style={{ fontSize: '0.7rem', fontWeight: 700, color: '#64748b' }}>PENDING REVIEW</span>
+              <div className="stat-num-row">
+                <span className="stat-big-num">14</span>
+                <span style={{ fontSize: '0.725rem', color: '#d97706', fontWeight: 700 }}>● 6 need priority action</span>
+              </div>
+              <div className="bar-track" style={{ marginTop: 8 }}>
+                <div className="bar-fill" style={{ width: '45%', background: '#4f46e5' }} />
+              </div>
+            </div>
+          </div>
+
+          {/* Main Grid: Filters Sidebar + Candidate Table */}
+          <div className="pipeline-layout">
+            <aside className="filters-sidebar">
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+                <span style={{ fontSize: '0.9rem', fontWeight: 800, color: '#0f172a', display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <Filter size={15} /> Filters
+                </span>
+                <button
+                  type="button"
+                  onClick={handleResetFilters}
+                  style={{ background: 'none', border: 'none', color: '#4f46e5', fontSize: '0.75rem', fontWeight: 700, cursor: 'pointer' }}
+                >
+                  Reset
+                </button>
+              </div>
+
+              <div className="form-group" style={{ marginBottom: 18 }}>
+                <label className="form-label" style={{ fontSize: '0.75rem' }}>Keyword Query</label>
+                <div className="input-wrapper">
+                  <span className="input-icon" style={{ left: 10 }}>
+                    <Search size={14} />
+                  </span>
+                  <input
+                    type="text"
+                    className="form-input"
+                    style={{ height: 36, paddingLeft: 30, fontSize: '0.775rem' }}
+                    placeholder="Skill, title, company..."
+                    value={searchQuery}
+                    onChange={e => setSearchQuery(e.target.value)}
+                  />
+                </div>
+              </div>
+
+              <div style={{ marginBottom: 18 }}>
+                <label className="form-label" style={{ fontSize: '0.75rem', marginBottom: 8, display: 'block' }}>Experience Bracket</label>
+                <div style={{ display: 'flex', gap: 6 }}>
+                  {['0-2 Yrs', '3-5 Yrs', '6+ Yrs'].map(brk => (
+                    <button
+                      key={brk}
+                      type="button"
+                      onClick={() => setSelectedExpBracket(brk)}
+                      className={`pill-btn ${selectedExpBracket === brk ? 'active' : ''}`}
+                      style={{ flex: 1, padding: '5px 0', fontSize: '0.7rem' }}
+                    >
+                      {brk}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div style={{ marginBottom: 18 }}>
+                <label className="form-label" style={{ fontSize: '0.75rem', marginBottom: 8, display: 'block' }}>Verified Core Skills</label>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  <label className="checkbox-label" style={{ fontSize: '0.775rem' }}>
+                    <input
+                      type="checkbox"
+                      checked={skillsFilter.reactNext}
+                      onChange={e => setSkillsFilter(prev => ({ ...prev, reactNext: e.target.checked }))}
+                    />
+                    <span>React / Next.js</span>
+                  </label>
+                  <label className="checkbox-label" style={{ fontSize: '0.775rem' }}>
+                    <input
+                      type="checkbox"
+                      checked={skillsFilter.typescript}
+                      onChange={e => setSkillsFilter(prev => ({ ...prev, typescript: e.target.checked }))}
+                    />
+                    <span>TypeScript</span>
+                  </label>
+                  <label className="checkbox-label" style={{ fontSize: '0.775rem' }}>
+                    <input
+                      type="checkbox"
+                      checked={skillsFilter.python}
+                      onChange={e => setSkillsFilter(prev => ({ ...prev, python: e.target.checked }))}
+                    />
+                    <span>Python / AI Frameworks</span>
+                  </label>
+                  <label className="checkbox-label" style={{ fontSize: '0.775rem' }}>
+                    <input
+                      type="checkbox"
+                      checked={skillsFilter.aws}
+                      onChange={e => setSkillsFilter(prev => ({ ...prev, aws: e.target.checked }))}
+                    />
+                    <span>AWS & Cloud Native</span>
+                  </label>
+                </div>
+              </div>
+
+              <div>
+                <label className="form-label" style={{ fontSize: '0.75rem', marginBottom: 8, display: 'block' }}>Availability</label>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                  {['Immediate', '2 Weeks', '1 Month'].map(av => (
+                    <button
+                      key={av}
+                      type="button"
+                      onClick={() => setAvailability(av)}
+                      className={`pill-btn ${availability === av ? 'active' : ''}`}
+                      style={{ fontSize: '0.7rem', padding: '4px 10px' }}
+                    >
+                      {av}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </aside>
+
+            {/* Right Candidate Table Card */}
+            <div className="pipeline-table-card">
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12, paddingBottom: 14, borderBottom: '1px solid #f1f5f9' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <div className="input-wrapper" style={{ width: 240 }}>
+                    <span className="input-icon" style={{ left: 10 }}>
+                      <Search size={14} />
+                    </span>
+                    <input
+                      type="text"
+                      className="form-input"
+                      style={{ height: 34, paddingLeft: 30, fontSize: '0.775rem' }}
+                      placeholder="Search shortlisted pool..."
+                    />
+                  </div>
+                  <span style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600 }}>48 Results</span>
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <span style={{ fontSize: '0.75rem', color: '#64748b' }}>Sort:</span>
+                  <button type="button" className="job-selector-btn" style={{ padding: '5px 10px', fontSize: '0.75rem' }}>
+                    <span>Highest AI Match</span>
+                    <ChevronDown size={13} />
+                  </button>
+                  <button
+                    type="button"
+                    className="btn-secondary"
+                    style={{ width: 34, height: 34, padding: 0 }}
+                    onClick={handleExportCsv}
+                    title="Export CSV (REQ-5.4)"
+                  >
+                    <Download size={15} />
+                  </button>
+                </div>
+              </div>
+
+              <div style={{ overflowX: 'auto' }}>
+                <table className="candidate-data-table">
+                  <thead>
+                    <tr>
+                      <th style={{ width: 36 }}>
+                        <input
+                          type="checkbox"
+                          onChange={handleSelectAll}
+                          checked={Object.keys(selectedRows).length === candidates.length}
+                        />
+                      </th>
+                      <th>CANDIDATE PROFILE</th>
+                      <th>AI MATCH INDEX</th>
+                      <th>CORE SKILLS & STACK</th>
+                      <th>EXP / EDUCATION</th>
+                      <th>STATUS</th>
+                      <th style={{ textAlign: 'right' }}>ACTIONS</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {candidates.map(candidate => (
+                      <tr key={candidate.id} style={{ background: selectedRows[candidate.id] ? '#f8fafc' : 'transparent' }}>
+                        <td>
+                          <input
+                            type="checkbox"
+                            checked={!!selectedRows[candidate.id]}
+                            onChange={() => handleSelectRow(candidate.id)}
+                          />
+                        </td>
+                        <td>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                            <img src={candidate.avatar} alt={candidate.name} style={{ width: 34, height: 34, borderRadius: '50%', objectFit: 'cover' }} />
+                            <div>
+                              <div style={{ fontWeight: 800, color: '#0f172a', fontSize: '0.8125rem' }}>{candidate.name}</div>
+                              <div style={{ fontSize: '0.7rem', color: '#64748b' }}>{candidate.title}</div>
+                            </div>
+                          </div>
+                        </td>
+                        <td>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: 4, width: 110 }}>
+                            <span style={{ fontSize: '0.725rem', fontWeight: 700, color: '#059669', background: '#ecfdf5', padding: '2px 6px', borderRadius: 4, display: 'inline-flex', alignItems: 'center', gap: 3 }}>
+                              <Sparkles size={11} /> {candidate.matchPct}% AI Match
+                            </span>
+                            <div className="bar-track">
+                              <div className="bar-fill" style={{ width: `${candidate.matchPct}%` }} />
+                            </div>
+                          </div>
+                        </td>
+                        <td>
+                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+                            {candidate.skills.map(s => (
+                              <span key={s} className="token-pill" style={{ padding: '2px 7px', fontSize: '0.6875rem' }}>
+                                {s}
+                              </span>
+                            ))}
+                          </div>
+                        </td>
+                        <td>
+                          <span style={{ fontSize: '0.75rem', color: '#334155' }}>{candidate.expEdu}</span>
+                        </td>
+                        <td>
+                          <span className={`status-pill ${candidate.status === 'Shortlisted' ? 'shortlisted' : candidate.status === 'Under Review' ? 'under-review' : 'interviewing'}`}>
+                            {candidate.status}
+                          </span>
+                        </td>
+                        <td style={{ textAlign: 'right' }}>
+                          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                            <button
+                              type="button"
+                              className="link-button"
+                              style={{ fontSize: '0.75rem' }}
+                              onClick={() => navigate(`/candidates/${candidate.id}`)}
+                            >
+                              View Profile
+                            </button>
+                            <button
+                              type="button"
+                              className="pill-btn active"
+                              style={{ padding: '4px 10px', fontSize: '0.725rem' }}
+                              onClick={() => handleOpenInterview(candidate.name)}
+                            >
+                              Invite
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12, marginTop: 18, paddingTop: 14, borderTop: '1px solid #f1f5f9' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+                  <span style={{ fontSize: '0.75rem', color: '#64748b' }}>Showing 1 to 5 of 48 shortlisted candidates</span>
+                  <button
+                    type="button"
+                    className="link-button"
+                    style={{ fontSize: '0.75rem' }}
+                    onClick={handleExportCsv}
+                  >
+                    Bulk Export
+                  </button>
+                  <span>•</span>
+                  <button
+                    type="button"
+                    className="link-button"
+                    style={{ fontSize: '0.75rem' }}
+                    onClick={() => handleOpenInterview('Selected Candidates')}
+                  >
+                    Move to Interview
+                  </button>
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                  <button type="button" className="pill-btn" style={{ padding: '3px 8px', fontSize: '0.725rem' }}>‹</button>
+                  <button type="button" className="pill-btn active" style={{ padding: '3px 9px', fontSize: '0.725rem' }}>1</button>
+                  <button type="button" className="pill-btn" style={{ padding: '3px 9px', fontSize: '0.725rem' }}>2</button>
+                  <button type="button" className="pill-btn" style={{ padding: '3px 9px', fontSize: '0.725rem' }}>3</button>
+                  <span style={{ color: '#94a3b8', fontSize: '0.75rem' }}>...</span>
+                  <button type="button" className="pill-btn" style={{ padding: '3px 9px', fontSize: '0.725rem' }}>10</button>
+                  <button type="button" className="pill-btn" style={{ padding: '3px 8px', fontSize: '0.725rem' }}>›</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* =========================================================
+          TAB 2: AI RECOMMENDATIONS (Screenshot 1)
+          ========================================================= */}
+      {activeTab === 'recommendations' && (
+        <div className="animate-fade-in">
+          {/* Header */}
+          <div className="page-title-group">
+            <div className="page-engine-badge">
+              <Sparkles size={14} />
+              <span>NEURAL RANK ENGINE 4.5 • SYNCHRONIZED 4M AGO</span>
+            </div>
+            <div className="page-title-row">
+              <div>
+                <h1 className="page-h1">AI Candidate Recommendations</h1>
+                <p className="page-subtitle">
+                  Multi-agent neural matching tailored for Senior Frontend Engineer role based on semantic ontology and code benchmarks.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Top Section: Weighting Card + 3 Stats */}
+          <div className="recommendations-top-grid">
+            <div className="weighting-card">
+              <div className="weighting-header">
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <div style={{ width: 28, height: 28, borderRadius: 8, background: '#f5f3ff', color: '#4f46e5', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <Sparkles size={16} />
+                  </div>
+                  <h3 style={{ fontSize: '0.95rem', fontWeight: 800, color: '#0f172a' }}>Vector Weighting Distribution</h3>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setWeightsModalOpen(true)}
+                  style={{ background: 'none', border: 'none', color: '#4f46e5', fontSize: '0.75rem', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }}
+                >
+                  <Sliders size={13} />
+                  <span>Customize Weights</span>
+                </button>
+              </div>
+
+              <div className="weight-split-bar">
+                <div className="bar-exp" style={{ width: `${weights.experience}%` }} />
+                <div className="bar-skills" style={{ width: `${weights.skills}%` }} />
+                <div className="bar-culture" style={{ width: `${weights.culture}%` }} />
+              </div>
+
+              <div className="weight-labels-row">
+                <div className="weight-item-dot">
+                  <span className="lbl" style={{ color: '#4f46e5' }}>● Experience</span>
+                  <span className="pct">{weights.experience}%</span>
+                </div>
+                <div className="weight-item-dot">
+                  <span className="lbl" style={{ color: '#3b82f6' }}>● Skills & Mastery</span>
+                  <span className="pct">{weights.skills}%</span>
+                </div>
+                <div className="weight-item-dot">
+                  <span className="lbl" style={{ color: '#10b981' }}>● Culture & Fit</span>
+                  <span className="pct">{weights.culture}%</span>
+                </div>
+              </div>
+
+              <div className="semantic-tokens-row">
+                <span style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 700, textTransform: 'uppercase' }}>Active Semantic Tokens:</span>
+                <span className="token-pill">📍 Next.js 14 App Router</span>
+                <span className="token-pill">💻 TypeScript Strict</span>
+                <span className="token-pill">📦 Micro-Frontends</span>
+                <span style={{ marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: 4, color: '#059669', fontSize: '0.7rem', fontWeight: 700 }}>
+                  <CheckCircle2 size={13} /> Triple Validated
+                </span>
+              </div>
+            </div>
+
+            <div className="mini-stat-card">
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                <span style={{ fontSize: '0.7rem', fontWeight: 700, color: '#64748b' }}>SCREENED CVS</span>
+                <div style={{ width: 32, height: 32, borderRadius: 8, background: '#eff6ff', color: '#3b82f6', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <FileText size={16} />
+                </div>
+              </div>
+              <div className="stat-num-row">
+                <span className="stat-big-num">142</span>
+                <span className="stat-trend">↑+38 today</span>
+              </div>
+            </div>
+
+            <div className="mini-stat-card">
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                <span style={{ fontSize: '0.7rem', fontWeight: 700, color: '#64748b' }}>AI SHORTLISTED</span>
+                <div style={{ width: 32, height: 32, borderRadius: 8, background: '#eef2ff', color: '#4f46e5', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <Award size={16} />
+                </div>
+              </div>
+              <div className="stat-num-row">
+                <span className="stat-big-num">5</span>
+                <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#4f46e5', background: '#eef2ff', padding: '2px 8px', borderRadius: 9999 }}>Top 3.5%</span>
+              </div>
+            </div>
+
+            <div className="mini-stat-card">
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                <span style={{ fontSize: '0.7rem', fontWeight: 700, color: '#64748b' }}>AVG TOP SCORE</span>
+                <div style={{ width: 32, height: 32, borderRadius: 8, background: '#ecfdf5', color: '#10b981', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <ShieldCheck size={16} />
+                </div>
+              </div>
+              <div className="stat-num-row">
+                <span className="stat-big-num">93.6%</span>
+                <span style={{ fontSize: '0.725rem', fontWeight: 700, color: '#059669' }}>High Confidence</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Section Title */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', margin: '28px 0 16px 0', flexWrap: 'wrap', gap: 8 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <h2 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#0f172a' }}>Ranked Recommendations</h2>
+              <span style={{ background: '#f5f3ff', color: '#4f46e5', fontSize: '0.7rem', fontWeight: 700, padding: '3px 10px', borderRadius: 9999 }}>
+                Live Model Analysis
+              </span>
+            </div>
+            <span style={{ fontSize: '0.75rem', color: '#64748b' }}>
+              Ranking Strategy: <strong style={{ color: '#0f172a' }}>Balanced Semantic Match</strong>
+            </span>
+          </div>
+
+          {/* 3 Ranked Candidate Cards */}
+          <div className="ranked-cards-grid">
+            <div className="ranked-card">
+              <div className="ranked-badge-top">
+                <span className="ai-choice-tag top-1">
+                  <Sparkles size={12} />
+                  <span>#1 AI TOP CHOICE</span>
+                </span>
+                <span className="fit-pct-pill">98% <span>FIT</span></span>
+              </div>
+
+              <div className="candidate-profile-row">
+                <div className="candidate-img-wrapper">
+                  <img
+                    src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80"
+                    alt="Dishan Perera"
+                    className="candidate-img"
+                  />
+                  <span className="verified-tick-badge"><Check size={10} /></span>
+                </div>
+                <div className="candidate-meta">
+                  <h4>Dishan Perera</h4>
+                  <p>Senior Frontend Specialist</p>
+                  <div className="candidate-details-pills">
+                    <span>💼 8 yrs exp</span>
+                    <span>•</span>
+                    <span>📍 Colombo (Hybrid)</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="score-bars-list">
+                <div className="score-bar-item">
+                  <div className="score-bar-labels">
+                    <span>System Architecture</span>
+                    <strong>100%</strong>
+                  </div>
+                  <div className="bar-track"><div className="bar-fill" style={{ width: '100%' }} /></div>
+                </div>
+                <div className="score-bar-item">
+                  <div className="score-bar-labels">
+                    <span>TypeScript Strictness</span>
+                    <strong>95%</strong>
+                  </div>
+                  <div className="bar-track"><div className="bar-fill" style={{ width: '95%' }} /></div>
+                </div>
+                <div className="score-bar-item">
+                  <div className="score-bar-labels">
+                    <span>Culture & Leadership</span>
+                    <strong>92%</strong>
+                  </div>
+                  <div className="bar-track"><div className="bar-fill" style={{ width: '92%' }} /></div>
+                </div>
+              </div>
+
+              <div className="why-ai-recommends-box">
+                <div className="why-ai-title">
+                  <Sparkles size={12} />
+                  <span>Why AI Recommends</span>
+                </div>
+                <p className="why-ai-desc">
+                  Exceeds Next.js 14 App Router requirements by +2.4 years. Proven technical leadership in 4 enterprise migrations with sub-second page performance.
+                </p>
+              </div>
+
+              <div className="card-actions-row">
+                <button
+                  type="button"
+                  className="btn-primary"
+                  style={{ flex: 1, height: 42, fontSize: '0.8125rem' }}
+                  onClick={() => handleOpenInterview('Dishan Perera')}
+                >
+                  <Calendar size={14} />
+                  <span>Invite to Interview</span>
+                </button>
+                <button
+                  type="button"
+                  className="btn-secondary"
+                  style={{ width: 42, height: 42, padding: 0 }}
+                  onClick={() => navigate('/candidates/1')}
+                  title="View Dossier"
+                >
+                  <Scale size={16} />
+                </button>
+              </div>
+            </div>
+
+            <div className="ranked-card">
+              <div className="ranked-badge-top">
+                <span className="ai-choice-tag strong">
+                  <Sparkles size={12} />
+                  <span>STRONG TECHNICAL FIT</span>
+                </span>
+                <span className="fit-pct-pill">94% <span>FIT</span></span>
+              </div>
+
+              <div className="candidate-profile-row">
+                <div className="candidate-img-wrapper">
+                  <img
+                    src="https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=100&auto=format&fit=crop&q=80"
+                    alt="Amaya Fernando"
+                    className="candidate-img"
+                  />
+                  <span className="verified-tick-badge"><Check size={10} /></span>
+                </div>
+                <div className="candidate-meta">
+                  <h4>Amaya Fernando</h4>
+                  <p>Design Systems & UI Architect</p>
+                  <div className="candidate-details-pills">
+                    <span>💼 5 yrs exp</span>
+                    <span>•</span>
+                    <span>📍 Remote (Global)</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="score-bars-list">
+                <div className="score-bar-item">
+                  <div className="score-bar-labels">
+                    <span>Design System Scalability</span>
+                    <strong>98%</strong>
+                  </div>
+                  <div className="bar-track"><div className="bar-fill" style={{ width: '98%' }} /></div>
+                </div>
+                <div className="score-bar-item">
+                  <div className="score-bar-labels">
+                    <span>React 18 Concurrent</span>
+                    <strong>93%</strong>
+                  </div>
+                  <div className="bar-track"><div className="bar-fill" style={{ width: '93%' }} /></div>
+                </div>
+                <div className="score-bar-item">
+                  <div className="score-bar-labels">
+                    <span>WCAG AAA Accessibility</span>
+                    <strong>96%</strong>
+                  </div>
+                  <div className="bar-track"><div className="bar-fill" style={{ width: '96%' }} /></div>
+                </div>
+              </div>
+
+              <div className="why-ai-recommends-box">
+                <div className="why-ai-title">
+                  <Sparkles size={12} />
+                  <span>Why AI Recommends</span>
+                </div>
+                <p className="why-ai-desc">
+                  Extensive enterprise UI component libraries experience. Authored design token workflows serving 40+ engineering teams seamlessly.
+                </p>
+              </div>
+
+              <div className="card-actions-row">
+                <button
+                  type="button"
+                  className="btn-primary"
+                  style={{ flex: 1, height: 42, fontSize: '0.8125rem' }}
+                  onClick={() => handleOpenInterview('Amaya Fernando')}
+                >
+                  <Send size={14} />
+                  <span>Invite</span>
+                </button>
+                <button
+                  type="button"
+                  className="btn-secondary"
+                  style={{ flex: 1, height: 42, fontSize: '0.8125rem' }}
+                  onClick={() => navigate('/candidates/2')}
+                >
+                  <UserCheck size={14} />
+                  <span>Profile</span>
+                </button>
+              </div>
+            </div>
+
+            <div className="ranked-card">
+              <div className="ranked-badge-top">
+                <span className="ai-choice-tag potential">
+                  <Sparkles size={12} />
+                  <span>HIGH POTENTIAL</span>
+                </span>
+                <span className="fit-pct-pill">89% <span>FIT</span></span>
+              </div>
+
+              <div className="candidate-profile-row">
+                <div className="candidate-img-wrapper">
+                  <img
+                    src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&auto=format&fit=crop&q=80"
+                    alt="Nuwan Senanayake"
+                    className="candidate-img"
+                  />
+                  <span className="verified-tick-badge"><Check size={10} /></span>
+                </div>
+                <div className="candidate-meta">
+                  <h4>Nuwan Senanayake</h4>
+                  <p>Full Stack JS Engineer</p>
+                  <div className="candidate-details-pills">
+                    <span>💼 4 yrs exp</span>
+                    <span>•</span>
+                    <span>📍 Kandy (On-site)</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="score-bars-list">
+                <div className="score-bar-item">
+                  <div className="score-bar-labels">
+                    <span>Algorithmic Benchmark</span>
+                    <strong>96th %ile</strong>
+                  </div>
+                  <div className="bar-track"><div className="bar-fill" style={{ width: '96%' }} /></div>
+                </div>
+                <div className="score-bar-item">
+                  <div className="score-bar-labels">
+                    <span>React + NestJS Backend</span>
+                    <strong>91%</strong>
+                  </div>
+                  <div className="bar-track"><div className="bar-fill" style={{ width: '91%' }} /></div>
+                </div>
+                <div className="score-bar-item">
+                  <div className="score-bar-labels">
+                    <span>Build Pipeline & CI/CD</span>
+                    <strong>88%</strong>
+                  </div>
+                  <div className="bar-track"><div className="bar-fill" style={{ width: '88%' }} /></div>
+                </div>
+              </div>
+
+              <div className="why-ai-recommends-box">
+                <div className="why-ai-title">
+                  <Sparkles size={12} />
+                  <span>Why AI Recommends</span>
+                </div>
+                <p className="why-ai-desc">
+                  Strong full-stack capability with 96th percentile benchmark. Ideal versatility for rapid end-to-end prototyping and distributed team execution.
+                </p>
+              </div>
+
+              <div className="card-actions-row">
+                <button
+                  type="button"
+                  className="btn-secondary"
+                  style={{ flex: 1, height: 42, fontSize: '0.8125rem' }}
+                  onClick={() => navigate('/candidates/3')}
+                >
+                  <UserCheck size={14} />
+                  <span>View Profile</span>
+                </button>
+                <button
+                  type="button"
+                  className="btn-primary"
+                  style={{ flex: 1, height: 42, fontSize: '0.8125rem', background: shortlistedMap.nuwan ? '#10b981' : undefined }}
+                  onClick={() => handleToggleShortlist('nuwan')}
+                >
+                  <span>{shortlistedMap.nuwan ? 'Shortlisted ✓' : 'Shortlist'}</span>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Discrepancy Matrix & Refinement */}
+          <div className="matrix-refinement-grid">
+            <div className="matrix-card">
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <div style={{ width: 28, height: 28, borderRadius: 8, background: '#f5f3ff', color: '#4f46e5', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <Sparkles size={16} />
+                  </div>
+                  <h3 style={{ fontSize: '0.95rem', fontWeight: 800, color: '#0f172a' }}>Neural Vector Discrepancy Matrix</h3>
+                </div>
+                <span style={{ fontSize: '0.7rem', fontWeight: 700, color: '#059669', background: '#ecfdf5', padding: '3px 8px', borderRadius: 9999 }}>
+                  ● Deterministic Match
+                </span>
+              </div>
+
+              <table className="matrix-table">
+                <thead>
+                  <tr>
+                    <th>Candidate</th>
+                    <th>Semantic Match</th>
+                    <th>Code Repos</th>
+                    <th>Experience Fit</th>
+                    <th>Confidence</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>
+                      <span className="matrix-dot-green" />
+                      <strong>Dishan Perera</strong>
+                    </td>
+                    <td>99.2% (App Router)</td>
+                    <td>Top 1.2% GitHub</td>
+                    <td style={{ color: '#059669', fontWeight: 700 }}>+2.4 yrs surplus</td>
+                    <td style={{ fontWeight: 700 }}>0.994</td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <span className="matrix-dot-green" />
+                      <strong>Amaya Fernando</strong>
+                    </td>
+                    <td>95.8% (UI Patterns)</td>
+                    <td>Storybook Core Contributor</td>
+                    <td style={{ color: '#2563eb', fontWeight: 700 }}>Exact Match (5 yrs)</td>
+                    <td style={{ fontWeight: 700 }}>0.981</td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <span className="matrix-dot-green" />
+                      <strong>Nuwan Senanayake</strong>
+                    </td>
+                    <td>91.4% (Fullstack JS)</td>
+                    <td>Leetcode 96th %ile</td>
+                    <td style={{ color: '#d97706', fontWeight: 700 }}>-1.0 yr delta (Offset)</td>
+                    <td style={{ fontWeight: 700 }}>0.963</td>
+                  </tr>
+                </tbody>
+              </table>
+
+              <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 10, padding: 12, marginTop: 16, fontSize: '0.725rem', color: '#64748b', lineHeight: 1.45 }}>
+                <CheckCircle2 size={16} color="#059669" style={{ flexShrink: 0, marginTop: 1 }} />
+                <div>
+                  <strong style={{ color: '#1e293b' }}>Anti-hallucination Verification:</strong> All candidate certifications, repository contributions, and tenure claims are verified against immutable ledger endpoints and cross-referenced with public git metadata.
+                </div>
+              </div>
+            </div>
+
+            <div className="refinement-card">
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+                <Sparkles size={18} color="#4f46e5" />
+                <h3 style={{ fontSize: '0.95rem', fontWeight: 800, color: '#0f172a' }}>AI Matching Refinement</h3>
+              </div>
+              <p style={{ fontSize: '0.75rem', color: '#64748b', lineHeight: 1.45 }}>
+                Need more variations or specialized focus? Re-run neural matching with custom recruiter criteria in natural language.
+              </p>
+
+              <textarea
+                className="prompt-textarea"
+                placeholder="e.g. Prioritize candidates who have hands-on experience refactoring massive legacy codebases into server components and state machines..."
+                value={promptText}
+                onChange={e => setPromptText(e.target.value)}
+              />
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end', fontSize: '0.6875rem', color: '#64748b', marginBottom: 8 }}>
+                <span>Prompt Optimizer: <strong style={{ color: '#10b981' }}>Active</strong></span>
+              </div>
+
+              <div className="quick-tags-row">
+                <button type="button" className="quick-tag-btn" onClick={() => handleAddTag('Prioritize Microfrontends')}>
+                  + Prioritize Microfrontends
+                </button>
+                <button type="button" className="quick-tag-btn" onClick={() => handleAddTag('Startup Leadership Exp')}>
+                  + Startup Leadership Exp
+                </button>
+                <button type="button" className="quick-tag-btn" onClick={() => handleAddTag('Sub-second LCP Focus')}>
+                  + Sub-second LCP Focus
+                </button>
+              </div>
+
+              <button
+                type="button"
+                className="btn-primary"
+                style={{ marginTop: 'auto', height: 44 }}
+                onClick={handleRegenerate}
+                disabled={isRegenerating}
+              >
+                <RefreshCw size={15} className={isRegenerating ? 'spinner' : ''} />
+                <span>{isRegenerating ? 'Neural Rescoring...' : 'Regenerate Recommendations'}</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modals */}
+      <CustomizeWeightsModal
+        isOpen={weightsModalOpen}
+        onClose={() => setWeightsModalOpen(false)}
+        weights={weights}
+        onSaveWeights={(newWeights) => {
+          setWeights(newWeights);
+          showToast('Vector weights applied! Neural ranking rebalanced.', 'success');
+        }}
+      />
+
+      <ScheduleInterviewModal
+        isOpen={interviewModalOpen}
+        onClose={() => setInterviewModalOpen(false)}
+        candidateName={selectedCandidateForInterview}
+        onSuccess={(msg) => showToast(msg, 'success')}
+      />
     </div>
   );
 };
