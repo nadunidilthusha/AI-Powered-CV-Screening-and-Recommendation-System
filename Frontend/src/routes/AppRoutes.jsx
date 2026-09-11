@@ -1,4 +1,4 @@
-import { Routes, Route } from 'react-router-dom';
+import { Routes, Route, useLocation } from 'react-router-dom';
 import { ROUTES } from './routePaths';
 import ProtectedRoute from './ProtectedRoute';
 import RoleRoute from './RoleRoute';
@@ -33,15 +33,14 @@ import ApiConfigurationPage from '../pages/admin/ApiConfigurationPage';
 import SystemStatusPage from '../pages/admin/SystemStatusPage';
 import DatabaseStatusPage from '../pages/admin/DatabaseStatusPage';
 
-// Picks the sidebar/topbar shell based on the logged-in user's role, so
-// Dashboard/Jobs/Candidates/etc. are declared ONCE instead of being
-// duplicated under two separate RoleRoute branches. The duplication was
-// the actual bug: React Router always matched the first branch (admin)
-// for shared paths like "/", regardless of the real user's role, which
-// caused an infinite redirect loop with no console error.
+// Dynamically picks AdminLayout if visiting an /admin path or if the user is an admin,
+// otherwise defaults to HrLayout. This solves the sidebar mismatch during frontend testing.
 const RoleAwareLayout = () => {
   const { user } = useAuth();
-  return user?.role === 'admin' ? <AdminLayout /> : <HrLayout />;
+  const location = useLocation();
+  const isAdminRoute = location.pathname.startsWith('/admin');
+
+  return (user?.role === 'admin' || isAdminRoute) ? <AdminLayout /> : <HrLayout />;
 };
 
 const AppRoutes = () => {
