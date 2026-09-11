@@ -69,7 +69,7 @@ const Sidebar = ({ role = 'admin' }) => {
 
   return (
     <>
-      <aside className="w-64 min-h-screen bg-[#1B2559] flex flex-col justify-between">
+      <aside className="w-64 h-screen sticky top-0 overflow-y-auto bg-[#1B2559] flex flex-col justify-between">
         <div>
           {/* Brand */}
           <div className="flex items-center gap-3 px-4 py-5">

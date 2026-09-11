@@ -9,7 +9,7 @@ export const ROUTES = {
   JOB_CREATE: '/jobs/create',
   JOB_DETAILS: '/jobs/:id',
   JOB_EDIT: '/jobs/:id/edit',
-  CV_UPLOAD: '/jobs/:id/upload',
+  CV_UPLOAD: '/cv-upload',
   CANDIDATES: '/candidates',
   CANDIDATE_DETAILS: '/candidates/:id',
   REPORTS: '/reports',

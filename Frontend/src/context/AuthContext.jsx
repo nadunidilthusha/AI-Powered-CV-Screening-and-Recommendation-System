@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect } from 'react';
+import { createContext, useContext, useState } from 'react';
 
 const AuthContext = createContext(null);
 
@@ -26,28 +26,15 @@ export const AuthProvider = ({ children }) => {
   // Active user session
   const [user, setUser] = useState(() => {
     const saved = localStorage.getItem('user');
-    if (saved) {
+    const token = localStorage.getItem('token');
+    // Only treat the user as logged in if BOTH a saved user and a token
+    // exist. No auto-seeding a demo session here — if nothing is saved,
+    // the user starts out logged out and sees the login page first.
+    if (saved && token) {
       try { return JSON.parse(saved); } catch (e) { /* ignore */ }
     }
-    return {
-      name: 'Nadeesha R.',
-      fullName: 'Nadeesha R.',
-      email: 'recruiter@company.com',
-      role: 'hr_manager',
-      initials: 'NR',
-      jobTitle: 'HR Manager'
-    };
+    return null;
   });
-
-  // Ensure default token exists for HR Manager access
-  useEffect(() => {
-    if (!localStorage.getItem('token')) {
-      localStorage.setItem('token', 'mock_jwt_token_hr_manager_secure_session');
-    }
-    if (!localStorage.getItem('user')) {
-      localStorage.setItem('user', JSON.stringify(user));
-    }
-  }, [user]);
 
   // Toast notifications
   const [toasts, setToasts] = useState([]);

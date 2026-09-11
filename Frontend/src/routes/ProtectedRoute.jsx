@@ -1,14 +1,10 @@
 import { Navigate, Outlet } from 'react-router-dom';
 import { ROUTES } from './routePaths';
-
-// TODO: replace with real auth check (e.g. via AuthContext / useAuth hook)
-const isAuthenticated = () => {
-  return Boolean(localStorage.getItem('token'));
-};
+import useAuth from '../hooks/useAuth';
 
 const ProtectedRoute = () => {
-  // Temporarily bypass auth check for frontend development
-  return <Outlet />;
+  const { user } = useAuth();
+  return user ? <Outlet /> : <Navigate to={ROUTES.LOGIN} replace />;
 };
 
 export default ProtectedRoute;
