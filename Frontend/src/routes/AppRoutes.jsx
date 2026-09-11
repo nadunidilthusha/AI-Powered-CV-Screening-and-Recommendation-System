@@ -35,49 +35,151 @@ import DatabaseStatusPage from '../pages/admin/DatabaseStatusPage';
 const AppRoutes = () => {
   return (
     <Routes>
-      {/* Public / auth routes */}
+      {/* =========================
+          PUBLIC / AUTH ROUTES
+      ========================== */}
       <Route element={<AuthLayout />}>
-        <Route path={ROUTES.LOGIN} element={<LoginPage />} />
-        <Route path={ROUTES.REGISTER} element={<RegisterPage />} />
-        <Route path={ROUTES.FORGOT_PASSWORD} element={<ForgotPasswordPage />} />
+        <Route
+          path={ROUTES.LOGIN}
+          element={<LoginPage />}
+        />
+
+        <Route
+          path={ROUTES.REGISTER}
+          element={<RegisterPage />}
+        />
+
+        <Route
+          path={ROUTES.FORGOT_PASSWORD}
+          element={<ForgotPasswordPage />}
+        />
       </Route>
 
-      {/* Protected routes */}
+      {/* =========================
+          PROTECTED ROUTES
+      ========================== */}
       <Route element={<ProtectedRoute />}>
-        {/* Admin: dashboard + admin-only pages, dark sidebar with Admin section */}
+
+        {/* =========================
+            ADMIN ROUTES
+        ========================== */}
         <Route element={<RoleRoute allow={['admin']} />}>
           <Route element={<AdminLayout />}>
-            <Route path={ROUTES.DASHBOARD} element={<DashboardPage />} />
-            <Route path={ROUTES.PROFILE} element={<ProfilePage />} />
-            <Route path={ROUTES.SETTINGS} element={<SettingsPage />} />
 
-            <Route path={ROUTES.ADMIN_USERS} element={<UserManagementPage />} />
-            <Route path={ROUTES.ADMIN_API_CONFIG} element={<ApiConfigurationPage />} />
-            <Route path={ROUTES.ADMIN_SYSTEM_STATUS} element={<SystemStatusPage />} />
-            <Route path={ROUTES.ADMIN_DATABASE_STATUS} element={<DatabaseStatusPage />} />
+            {/* Admin Dashboard stays at "/" */}
+            <Route
+              path={ROUTES.DASHBOARD}
+              element={<DashboardPage />}
+            />
+
+            <Route
+              path={ROUTES.PROFILE}
+              element={<ProfilePage />}
+            />
+
+            <Route
+              path={ROUTES.SETTINGS}
+              element={<SettingsPage />}
+            />
+
+            <Route
+              path={ROUTES.ADMIN_USERS}
+              element={<UserManagementPage />}
+            />
+
+            <Route
+              path={ROUTES.ADMIN_API_CONFIG}
+              element={<ApiConfigurationPage />}
+            />
+
+            <Route
+              path={ROUTES.ADMIN_SYSTEM_STATUS}
+              element={<SystemStatusPage />}
+            />
+
+            <Route
+              path={ROUTES.ADMIN_DATABASE_STATUS}
+              element={<DatabaseStatusPage />}
+            />
+
           </Route>
         </Route>
 
-        {/* HR Manager: dashboard + workspace pages, no Admin section in sidebar */}
+        {/* =========================
+            HR MANAGER ROUTES
+        ========================== */}
         <Route element={<RoleRoute allow={['hr_manager']} />}>
           <Route element={<HrLayout />}>
-            <Route path={ROUTES.DASHBOARD} element={<DashboardPage />} />
-            <Route path={ROUTES.PROFILE} element={<ProfilePage />} />
-            <Route path={ROUTES.SETTINGS} element={<SettingsPage />} />
 
-            <Route path={ROUTES.JOBS} element={<JobListPage />} />
-            <Route path={ROUTES.JOB_CREATE} element={<CreateJobPage />} />
-            <Route path={ROUTES.JOB_DETAILS} element={<JobDetailsPage />} />
-            <Route path={ROUTES.JOB_EDIT} element={<EditJobPage />} />
+            {/* HR Dashboard */}
+            <Route
+              path="/dashboard"
+              element={<DashboardPage />}
+            />
 
-            <Route path={ROUTES.CV_UPLOAD} element={<CvUploadPage />} />
+            <Route
+              path={ROUTES.PROFILE}
+              element={<ProfilePage />}
+            />
 
-            <Route path={ROUTES.CANDIDATES} element={<CandidateListPage />} />
-            <Route path={ROUTES.CANDIDATE_DETAILS} element={<CandidateDetailsPage />} />
+            <Route
+              path={ROUTES.SETTINGS}
+              element={<SettingsPage />}
+            />
 
-            <Route path={ROUTES.REPORTS} element={<ReportsPage />} />
+            {/* Job Routes */}
+            <Route
+              path={ROUTES.JOBS}
+              element={<JobListPage />}
+            />
+
+            <Route
+              path={ROUTES.JOB_CREATE}
+              element={<CreateJobPage />}
+            />
+
+            <Route
+              path={ROUTES.JOB_DETAILS}
+              element={<JobDetailsPage />}
+            />
+
+            <Route
+              path={ROUTES.JOB_EDIT}
+              element={<EditJobPage />}
+            />
+
+            {/* CV Upload - existing job-specific route */}
+            <Route
+              path={ROUTES.CV_UPLOAD}
+              element={<CvUploadPage />}
+            />
+
+            {/* CV Upload - sidebar navigation route */}
+            <Route
+              path="/cv-upload"
+              element={<CvUploadPage />}
+            />
+
+            {/* Candidate Routes */}
+            <Route
+              path={ROUTES.CANDIDATES}
+              element={<CandidateListPage />}
+            />
+
+            <Route
+              path={ROUTES.CANDIDATE_DETAILS}
+              element={<CandidateDetailsPage />}
+            />
+
+            {/* Reports */}
+            <Route
+              path={ROUTES.REPORTS}
+              element={<ReportsPage />}
+            />
+
           </Route>
         </Route>
+
       </Route>
     </Routes>
   );
