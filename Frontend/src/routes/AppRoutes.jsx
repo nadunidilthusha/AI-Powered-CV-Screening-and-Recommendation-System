@@ -2,6 +2,7 @@ import { Routes, Route } from 'react-router-dom';
 import { ROUTES } from './routePaths';
 import ProtectedRoute from './ProtectedRoute';
 import RoleRoute from './RoleRoute';
+import useAuth from '../hooks/useAuth';
 
 import AuthLayout from '../components/layout/AuthLayout';
 import AdminLayout from '../components/layout/AdminLayout';
@@ -32,6 +33,17 @@ import ApiConfigurationPage from '../pages/admin/ApiConfigurationPage';
 import SystemStatusPage from '../pages/admin/SystemStatusPage';
 import DatabaseStatusPage from '../pages/admin/DatabaseStatusPage';
 
+// Picks the sidebar/topbar shell based on the logged-in user's role, so
+// Dashboard/Jobs/Candidates/etc. are declared ONCE instead of being
+// duplicated under two separate RoleRoute branches. The duplication was
+// the actual bug: React Router always matched the first branch (admin)
+// for shared paths like "/", regardless of the real user's role, which
+// caused an infinite redirect loop with no console error.
+const RoleAwareLayout = () => {
+  const { user } = useAuth();
+  return user?.role === 'admin' ? <AdminLayout /> : <HrLayout />;
+};
+
 const AppRoutes = () => {
   return (
     <Routes>
@@ -42,40 +54,31 @@ const AppRoutes = () => {
         <Route path={ROUTES.FORGOT_PASSWORD} element={<ForgotPasswordPage />} />
       </Route>
 
-      {/* Protected routes */}
+      {/* Protected routes: any authenticated user, admin or hr_manager */}
       <Route element={<ProtectedRoute />}>
-        {/* Admin: dashboard + admin-only pages, dark sidebar with Admin section */}
-        <Route element={<RoleRoute allow={['admin']} />}>
-          <Route element={<AdminLayout />}>
-            <Route path={ROUTES.DASHBOARD} element={<DashboardPage />} />
-            <Route path={ROUTES.PROFILE} element={<ProfilePage />} />
-            <Route path={ROUTES.SETTINGS} element={<SettingsPage />} />
+        <Route element={<RoleAwareLayout />}>
+          <Route path={ROUTES.DASHBOARD} element={<DashboardPage />} />
+          <Route path={ROUTES.PROFILE} element={<ProfilePage />} />
+          <Route path={ROUTES.SETTINGS} element={<SettingsPage />} />
 
+          <Route path={ROUTES.JOBS} element={<JobListPage />} />
+          <Route path={ROUTES.JOB_CREATE} element={<CreateJobPage />} />
+          <Route path={ROUTES.JOB_DETAILS} element={<JobDetailsPage />} />
+          <Route path={ROUTES.JOB_EDIT} element={<EditJobPage />} />
+
+          <Route path={ROUTES.CV_UPLOAD} element={<CvUploadPage />} />
+
+          <Route path={ROUTES.CANDIDATES} element={<CandidateListPage />} />
+          <Route path={ROUTES.CANDIDATE_DETAILS} element={<CandidateDetailsPage />} />
+
+          <Route path={ROUTES.REPORTS} element={<ReportsPage />} />
+
+          {/* Admin-only pages, still inside the same protected shell */}
+          <Route element={<RoleRoute allow={['admin']} />}>
             <Route path={ROUTES.ADMIN_USERS} element={<UserManagementPage />} />
             <Route path={ROUTES.ADMIN_API_CONFIG} element={<ApiConfigurationPage />} />
             <Route path={ROUTES.ADMIN_SYSTEM_STATUS} element={<SystemStatusPage />} />
             <Route path={ROUTES.ADMIN_DATABASE_STATUS} element={<DatabaseStatusPage />} />
-          </Route>
-        </Route>
-
-        {/* HR Manager: dashboard + workspace pages, no Admin section in sidebar */}
-        <Route element={<RoleRoute allow={['hr_manager']} />}>
-          <Route element={<HrLayout />}>
-            <Route path={ROUTES.DASHBOARD} element={<DashboardPage />} />
-            <Route path={ROUTES.PROFILE} element={<ProfilePage />} />
-            <Route path={ROUTES.SETTINGS} element={<SettingsPage />} />
-
-            <Route path={ROUTES.JOBS} element={<JobListPage />} />
-            <Route path={ROUTES.JOB_CREATE} element={<CreateJobPage />} />
-            <Route path={ROUTES.JOB_DETAILS} element={<JobDetailsPage />} />
-            <Route path={ROUTES.JOB_EDIT} element={<EditJobPage />} />
-
-            <Route path={ROUTES.CV_UPLOAD} element={<CvUploadPage />} />
-
-            <Route path={ROUTES.CANDIDATES} element={<CandidateListPage />} />
-            <Route path={ROUTES.CANDIDATE_DETAILS} element={<CandidateDetailsPage />} />
-
-            <Route path={ROUTES.REPORTS} element={<ReportsPage />} />
           </Route>
         </Route>
       </Route>
