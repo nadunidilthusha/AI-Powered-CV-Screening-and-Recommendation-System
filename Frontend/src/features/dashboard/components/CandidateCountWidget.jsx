@@ -1,27 +1,45 @@
+import { useState } from 'react';
+
 const candidateStats = [
   {
     label: 'Highly Recommended',
     value: 32,
+    color: '#22c55e',
     dotColor: 'bg-green-500',
   },
   {
     label: 'Recommended',
     value: 56,
+    color: '#2563eb',
     dotColor: 'bg-blue-600',
   },
   {
     label: 'Not Recommended',
     value: 25,
+    color: '#f59e0b',
     dotColor: 'bg-amber-500',
   },
   {
     label: 'Pending',
     value: 11,
+    color: '#cbd5e1',
     dotColor: 'bg-slate-300',
   },
 ];
 
 const CandidateCountWidget = () => {
+  const [hoveredStat, setHoveredStat] = useState(null);
+
+  const totalCandidates = candidateStats.reduce(
+    (total, item) => total + item.value,
+    0
+  );
+
+  const radius = 52;
+  const circumference = 2 * Math.PI * radius;
+
+  let accumulatedPercentage = 0;
+
   return (
     <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
       {/* Header */}
@@ -50,20 +68,73 @@ const CandidateCountWidget = () => {
 
       {/* Content */}
       <div className="mt-5 flex flex-col items-center justify-between gap-6 sm:flex-row">
-        {/* Donut Chart */}
-        <div className="relative h-36 w-36 shrink-0">
-          <div
-            className="h-full w-full rounded-full"
-            style={{
-              background:
-                'conic-gradient(#22c55e 0% 25.8%, #2563eb 25.8% 71%, #f59e0b 71% 91.1%, #cbd5e1 91.1% 100%)',
-            }}
-          />
+        {/* Doughnut Chart */}
+        <div className="relative h-40 w-40 shrink-0">
+          <svg
+            viewBox="0 0 140 140"
+            className="h-full w-full"
+          >
+            {/* Background ring */}
+            <circle
+              cx="70"
+              cy="70"
+              r={radius}
+              fill="none"
+              stroke="#f1f5f9"
+              strokeWidth="18"
+            />
 
-          {/* Donut hole */}
-          <div className="absolute inset-[22px] flex flex-col items-center justify-center rounded-full bg-white">
+            {candidateStats.map((item) => {
+              const percentage = item.value / totalCandidates;
+
+              const segmentLength =
+                percentage * circumference;
+
+              const strokeOffset =
+                -(accumulatedPercentage * circumference);
+
+              accumulatedPercentage += percentage;
+
+              return (
+                <circle
+                  key={item.label}
+                  cx="70"
+                  cy="70"
+                  r={radius}
+                  fill="none"
+                  stroke={item.color}
+                  strokeWidth="18"
+                  strokeDasharray={`${segmentLength} ${
+                    circumference - segmentLength
+                  }`}
+                  strokeDashoffset={strokeOffset}
+                  transform="rotate(-90 70 70)"
+                  className="cursor-pointer transition-opacity duration-150 hover:opacity-80"
+                  onMouseEnter={() => setHoveredStat(item)}
+                  onMouseLeave={() => setHoveredStat(null)}
+                  aria-label={`${item.label}: ${item.value} candidates`}
+                />
+              );
+            })}
+          </svg>
+
+          {/* Tooltip */}
+          {hoveredStat && (
+            <div className="pointer-events-none absolute -top-12 left-1/2 z-20 -translate-x-1/2 whitespace-nowrap rounded-lg bg-slate-900 px-3 py-2 text-center text-xs text-white shadow-lg">
+              <p className="font-semibold">
+                {hoveredStat.label}
+              </p>
+
+              <p className="mt-0.5">
+                {hoveredStat.value} candidates
+              </p>
+            </div>
+          )}
+
+          {/* Center */}
+          <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
             <span className="text-2xl font-bold text-slate-900">
-              124
+              {totalCandidates}
             </span>
 
             <span className="mt-1 text-[10px] text-slate-400">
