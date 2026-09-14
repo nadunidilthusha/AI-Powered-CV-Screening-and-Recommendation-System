@@ -1,7 +1,8 @@
 import { useState } from 'react';
-import { X, Save } from 'lucide-react';
+import { X, Save, AlertCircle } from 'lucide-react';
 import Input from '../../../components/common/Input/Input';
 import Button from '../../../components/common/Button/Button';
+import useAuth from '../../../hooks/useAuth';
 
 const STATUS_OPTIONS = [
   { value: 'Draft', label: 'Save as draft' },
@@ -15,11 +16,10 @@ const STATUS_SELECTED_CLASSES = {
   Closed: 'border-red-600 bg-red-50 text-red-600',
 };
 
-/**
- * Shared job form used by both CreateJobPage and EditJobPage.
- * Pass `initialData` to pre-fill for editing; omit it to create a new job.
- */
+
 const JobForm = ({ initialData = null, onSubmit, onCancel, submitLabel = 'Save job', loading = false }) => {
+  const { showToast } = useAuth();
+
   const [title, setTitle] = useState(initialData?.title ?? '');
   const [department, setDepartment] = useState(initialData?.department ?? 'Engineering');
   const [type, setType] = useState(initialData?.type ?? 'Full-time');
@@ -31,6 +31,7 @@ const JobForm = ({ initialData = null, onSubmit, onCancel, submitLabel = 'Save j
   const [status, setStatus] = useState(initialData?.status ?? 'Draft');
   const [skills, setSkills] = useState(initialData?.skills ?? []);
   const [skillDraft, setSkillDraft] = useState('');
+  const [errors, setErrors] = useState({});
 
   const addSkill = (e) => {
     if (e.key !== 'Enter' || !skillDraft.trim()) return;
@@ -43,13 +44,39 @@ const JobForm = ({ initialData = null, onSubmit, onCancel, submitLabel = 'Save j
     setSkills((prev) => prev.filter((_, i) => i !== index));
   };
 
+  // Clears a field's error the moment the user starts fixing it.
+  const clearError = (field) => {
+    setErrors((prev) => {
+      if (!prev[field]) return prev;
+      const next = { ...prev };
+      delete next[field];
+      return next;
+    });
+  };
+
+  const validate = () => {
+    const newErrors = {};
+    if (!title.trim()) newErrors.title = 'Job title is required.';
+    if (!location.trim()) newErrors.location = 'Location is required.';
+    if (!description.trim()) newErrors.description = 'Job description is required.';
+    return newErrors;
+  };
+
   const handleSubmit = (e) => {
     e.preventDefault();
+
+    const validationErrors = validate();
+    if (Object.keys(validationErrors).length > 0) {
+      setErrors(validationErrors);
+      showToast('Please fill in all required fields before saving.', 'error');
+      return;
+    }
+
     onSubmit({
-      title: title.trim() || 'Untitled role',
+      title: title.trim(),
       department,
       type,
-      location: location.trim() || 'Not specified',
+      location: location.trim(),
       level,
       salaryMin,
       salaryMax,
@@ -60,9 +87,15 @@ const JobForm = ({ initialData = null, onSubmit, onCancel, submitLabel = 'Save j
   };
 
   return (
-    <form onSubmit={handleSubmit}>
+    <form onSubmit={handleSubmit} noValidate>
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-        <Input label="Job title" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="e.g. Senior Backend Engineer" />
+        <Input
+          label="Job title"
+          value={title}
+          onChange={(e) => { setTitle(e.target.value); clearError('title'); }}
+          placeholder="e.g. Senior Backend Engineer"
+          error={errors.title}
+        />
 
         <Input as="select" label="Department" value={department} onChange={(e) => setDepartment(e.target.value)}>
           <option>Engineering</option>
@@ -79,7 +112,13 @@ const JobForm = ({ initialData = null, onSubmit, onCancel, submitLabel = 'Save j
           <option>Internship</option>
         </Input>
 
-        <Input label="Location" value={location} onChange={(e) => setLocation(e.target.value)} placeholder="e.g. Colombo · Hybrid" />
+        <Input
+          label="Location"
+          value={location}
+          onChange={(e) => { setLocation(e.target.value); clearError('location'); }}
+          placeholder="e.g. Colombo · Hybrid"
+          error={errors.location}
+        />
 
         <Input as="select" label="Experience level" value={level} onChange={(e) => setLevel(e.target.value)}>
           <option>Entry level</option>
@@ -139,14 +178,16 @@ const JobForm = ({ initialData = null, onSubmit, onCancel, submitLabel = 'Save j
           </div>
         </div>
 
-        <Input
-          as="textarea"
-          label="Job description"
-          className="md:col-span-2"
-          value={description}
-          onChange={(e) => setDescription(e.target.value)}
-          placeholder="Describe responsibilities, requirements, and what a strong candidate looks like. This text is what the AI agents compare CVs against, so be specific."
-        />
+        <div className="md:col-span-2">
+          <Input
+            as="textarea"
+            label="Job description"
+            value={description}
+            onChange={(e) => { setDescription(e.target.value); clearError('description'); }}
+            placeholder="Describe responsibilities, requirements, and what a strong candidate looks like. This text is what the AI agents compare CVs against, so be specific."
+            error={errors.description}
+          />
+        </div>
 
         {/* Status toggle */}
         <div className="md:col-span-2">
@@ -167,6 +208,13 @@ const JobForm = ({ initialData = null, onSubmit, onCancel, submitLabel = 'Save j
           </div>
         </div>
       </div>
+
+      {Object.keys(errors).length > 0 && (
+        <div className="mt-4 flex items-center gap-2 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700">
+          <AlertCircle size={16} />
+          Please fill in all required fields before saving.
+        </div>
+      )}
 
       <div className="mt-6 flex justify-end gap-3 border-t border-slate-200 pt-4">
         {onCancel && (

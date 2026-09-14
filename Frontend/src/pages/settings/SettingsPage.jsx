@@ -1,29 +1,41 @@
 import { useRef, useState } from 'react';
-import { BadgeCheck, Save, CheckCircle2 } from 'lucide-react';
+import { BadgeCheck, Save } from 'lucide-react';
 import Card from '../../components/common/Card/Card';
 import Input from '../../components/common/Input/Input';
 import Button from '../../components/common/Button/Button';
+import useAuth from '../../hooks/useAuth';
 
 const INITIAL_PROFILE = {
   fullName: 'Nadeesha Ranasinghe',
-  jobTitle: 'HR Manager',
   email: 'nadeesha@talentlens.io',
   phone: '0771234567',
   department: 'Human Resources',
 };
 
 const SettingsPage = () => {
+  const { showToast } = useAuth();
   const [profile, setProfile] = useState(INITIAL_PROFILE);
   const [avatarUrl, setAvatarUrl] = useState(null); // null = show initials fallback
-  const [saved, setSaved] = useState(false);
+  const [errors, setErrors] = useState({});
   const fileInputRef = useRef(null);
+
+  const clearError = (field) => {
+    setErrors((prev) => {
+      if (!prev[field]) return prev;
+      const next = { ...prev };
+      delete next[field];
+      return next;
+    });
+  };
 
   const updateField = (field) => (e) => {
     setProfile((prev) => ({ ...prev, [field]: e.target.value }));
+    clearError(field);
   };
 
   const handlePhoneChange = (e) => {
     setProfile((prev) => ({ ...prev, phone: e.target.value.replace(/\D/g, '') }));
+    clearError('phone');
   };
 
   const handleUploadClick = () => fileInputRef.current?.click();
@@ -55,15 +67,31 @@ const SettingsPage = () => {
   const handleCancel = () => {
     setProfile(INITIAL_PROFILE);
     setAvatarUrl(null);
+    setErrors({});
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
+  const validate = () => {
+    const newErrors = {};
+    if (!profile.fullName.trim()) newErrors.fullName = 'Full name is required.';
+    if (!profile.email.trim()) newErrors.email = 'Work email is required.';
+    if (!profile.phone.trim()) newErrors.phone = 'Phone number is required.';
+    if (!profile.department.trim()) newErrors.department = 'Department is required.';
+    return newErrors;
+  };
+
   const handleSave = () => {
+    const validationErrors = validate();
+    if (Object.keys(validationErrors).length > 0) {
+      setErrors(validationErrors);
+      showToast('Please fill in all required fields before saving.', 'error');
+      return;
+    }
+
     // TODO: replace with a real call, e.g.
     // await api.put('/users/me', profile)
     console.log('Saving profile', profile);
-    setSaved(true);
-    setTimeout(() => setSaved(false), 3000);
+    showToast('Profile updated successfully!', 'success');
   };
 
   return (
@@ -72,13 +100,6 @@ const SettingsPage = () => {
         <h1 className="text-xl font-bold text-slate-900">Account settings</h1>
         <p className="mt-1 text-sm text-slate-500">Manage your profile information</p>
       </div>
-
-      {saved && (
-        <div className="mb-4 flex items-center gap-2 rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm font-medium text-green-700">
-          <CheckCircle2 size={16} />
-          Profile updated successfully.
-        </div>
-      )}
 
       <Card title="Profile information" subtitle="Update your photo and personal details">
         <div className="mb-6 flex items-center gap-4">
@@ -107,13 +128,29 @@ const SettingsPage = () => {
         </div>
 
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-          <Input label="Full name" value={profile.fullName} onChange={updateField('fullName')} />
-          <Input label="Job title" value={profile.jobTitle} onChange={updateField('jobTitle')} />
+          <Input
+            label="Full name"
+            value={profile.fullName}
+            onChange={updateField('fullName')}
+            error={errors.fullName}
+          />
+
           <div>
-            <Input label="Work email" type="email" value={profile.email} onChange={updateField('email')} />
-            <span className="mt-2 inline-flex items-center gap-1 rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-bold text-green-700">
-              <BadgeCheck size={12} /> Verified
-            </span>
+            <div className="mb-1.5 flex items-center justify-between">
+              <label className="text-xs font-semibold text-slate-800">Work email</label>
+              <span className="inline-flex items-center gap-1 rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-bold text-green-700">
+                <BadgeCheck size={12} /> Verified
+              </span>
+            </div>
+            <input
+              type="email"
+              value={profile.email}
+              onChange={updateField('email')}
+              className={`w-full rounded-lg border bg-slate-50 px-3 py-2.5 text-sm text-slate-900 outline-none transition-colors focus:border-blue-600 focus:bg-white focus:ring-2 focus:ring-blue-100 ${
+                errors.email ? 'border-red-300' : 'border-slate-200'
+              }`}
+            />
+            {errors.email && <p className="mt-1.5 text-xs font-medium text-red-600">{errors.email}</p>}
           </div>
 
           <Input
@@ -126,13 +163,21 @@ const SettingsPage = () => {
             value={profile.phone}
             onChange={handlePhoneChange}
             placeholder="e.g. 0771234567"
+            error={errors.phone}
           />
 
-          <Input as="select" label="Department" value={profile.department} onChange={updateField('department')}>
+          <Input
+            as="select"
+            label="Department"
+            value={profile.department}
+            onChange={updateField('department')}
+            error={errors.department}
+          >
             <option>Human Resources</option>
             <option>Engineering</option>
             <option>Operations</option>
           </Input>
+
           <Input label="Role" hint="assigned by your administrator" defaultValue="HR Manager" disabled />
         </div>
 
