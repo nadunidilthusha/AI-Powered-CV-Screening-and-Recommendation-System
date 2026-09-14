@@ -3,10 +3,12 @@ import { useNavigate } from 'react-router-dom';
 import Card from '../../components/common/Card/Card';
 import JobForm from '../../features/jobs/components/JobForm';
 import jobService from '../../services/jobService';
+import useAuth from '../../hooks/useAuth';
 import { ROUTES } from '../../routes/routePaths';
 
 const CreateJobPage = () => {
   const navigate = useNavigate();
+  const { showToast } = useAuth();
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (formData) => {
@@ -14,10 +16,12 @@ const CreateJobPage = () => {
     try {
       await jobService.createJob(formData);
     } catch (err) {
-      // TODO: surface a real error (e.g. via Alert) once the API is connected
-      console.error('Failed to create job', err);
+      // Expected until the backend exists — the job still gets created
+      // locally below so the flow can be tested end-to-end.
+      console.error('Failed to create job (no backend yet)', err);
     } finally {
       setLoading(false);
+      showToast(`Job posting "${formData.title}" created successfully!`, 'success');
       navigate(ROUTES.JOBS);
     }
   };

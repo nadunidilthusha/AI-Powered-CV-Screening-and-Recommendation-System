@@ -6,12 +6,14 @@ import Alert from '../../components/common/Alert/Alert';
 import Button from '../../components/common/Button/Button';
 import JobForm from '../../features/jobs/components/JobForm';
 import jobService from '../../services/jobService';
+import useAuth from '../../hooks/useAuth';
 import { ROUTES } from '../../routes/routePaths';
 import { MOCK_JOBS } from './JobListPage';
 
 const EditJobPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { showToast } = useAuth();
   const [loading, setLoading] = useState(false);
 
   // TODO: replace with jobService.getJobById(id) once the backend is connected
@@ -48,6 +50,7 @@ const EditJobPage = () => {
       }
 
       setLoading(false);
+      showToast(`Job posting "${formData.title}" updated successfully!`, 'success');
       navigate(ROUTES.JOB_DETAILS.replace(':id', id));
     }
   };
