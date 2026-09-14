@@ -59,7 +59,16 @@ const CandidateDetailsPage = () => {
   };
 
   const handleExportPdf = () => {
-    showToast('Generating candidate evaluation dossier PDF (REQ-5.4)... Download ready!', 'success');
+    const blob = new Blob(['Mock PDF content for ' + candidateName], { type: 'application/pdf' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `${candidateName.replace(/\s+/g, '_')}_Profile.pdf`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    showToast('Candidate evaluation dossier PDF downloaded!', 'success');
   };
 
   return (
@@ -202,7 +211,7 @@ const CandidateDetailsPage = () => {
             <button
               type="button"
               style={{ background: 'none', border: 'none', color: '#4f46e5', cursor: 'pointer', padding: 4 }}
-              onClick={() => showToast('Opening original PDF resume...', 'info')}
+              onClick={() => window.open('/sample-resume.pdf', '_blank')}
             >
               <ExternalLink size={15} />
             </button>
