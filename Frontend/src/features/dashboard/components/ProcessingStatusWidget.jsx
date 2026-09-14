@@ -65,23 +65,14 @@ const ProcessingStatusWidget = () => {
   return (
     <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
       {/* Header */}
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <h2 className="text-base font-semibold text-slate-900">
-            Processing Status
-          </h2>
+      <div>
+        <h2 className="text-base font-semibold text-slate-900">
+          Processing Status
+        </h2>
 
-          <p className="mt-1 text-xs text-slate-400">
-            Bulk CV analysis and AI screening progress
-          </p>
-        </div>
-
-        <button
-          type="button"
-          className="text-xs font-semibold text-blue-600 hover:text-blue-700"
-        >
-          View all activity →
-        </button>
+        <p className="mt-1 text-xs text-slate-400">
+          Bulk CV analysis and AI screening progress
+        </p>
       </div>
 
       {/* Processing rows */}
@@ -89,7 +80,7 @@ const ProcessingStatusWidget = () => {
         {processingJobs.map((item) => (
           <div
             key={item.job}
-            className="grid grid-cols-1 gap-3 py-5 md:grid-cols-[220px_1fr_auto_auto_auto] md:items-center md:gap-5"
+            className="grid grid-cols-1 gap-3 py-5 md:grid-cols-[220px_1fr_auto_auto] md:items-center md:gap-5"
           >
             {/* Job */}
             <div>
@@ -131,14 +122,6 @@ const ProcessingStatusWidget = () => {
                 {item.status}
               </span>
             </div>
-
-            {/* View details */}
-            <button
-              type="button"
-              className="text-left text-xs font-semibold text-blue-600 hover:text-blue-700 md:min-w-[70px] md:text-right"
-            >
-              View details
-            </button>
           </div>
         ))}
       </div>
