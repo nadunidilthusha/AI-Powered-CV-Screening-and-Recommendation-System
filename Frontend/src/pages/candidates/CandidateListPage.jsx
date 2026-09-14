@@ -27,18 +27,22 @@ const CandidateListPage = () => {
   // ==========================================
   // PIPELINE STATE (Screenshot 2)
   // ==========================================
-  const [selectedRows, setSelectedRows] = useState({ 1: true });
+  const [selectedRows, setSelectedRows] = useState({});
   const [searchQuery, setSearchQuery] = useState('');
+  const [poolSearchQuery, setPoolSearchQuery] = useState('');
   const [selectedExpBracket, setSelectedExpBracket] = useState('6+ Yrs');
   const [skillsFilter, setSkillsFilter] = useState({
     reactNext: true,
     typescript: true,
     python: false,
-    aws: true
+    aws: false
   });
   const [availability, setAvailability] = useState('Immediate');
+  const [selectedJobRequisition, setSelectedJobRequisition] = useState('Sr. Frontend Engineer (Req #FE-802)');
+  const [sortOption, setSortOption] = useState('Highest AI Match');
+  const [currentPage, setCurrentPage] = useState(1);
 
-  const candidates = [
+  const baseCandidates = [
     {
       id: 1,
       name: 'Dishan Perera',
@@ -47,7 +51,9 @@ const CandidateListPage = () => {
       avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80',
       skills: ['React 18', 'Next.js 14', 'TypeScript'],
       expEdu: '6.2 Yrs • B.Sc. SE (First Class)',
-      status: 'Shortlisted'
+      status: 'Shortlisted',
+      job: 'Sr. Frontend Engineer (Req #FE-802)',
+      availability: 'Immediate'
     },
     {
       id: 2,
@@ -57,7 +63,9 @@ const CandidateListPage = () => {
       avatar: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=100&auto=format&fit=crop&q=80',
       skills: ['AWS', 'Python', 'FastAPI'],
       expEdu: '8.0 Yrs • M.Sc. CS (Stanford)',
-      status: 'Under Review'
+      status: 'Under Review',
+      job: 'Cloud Architect (Req #CA-201)',
+      availability: '1 Month'
     },
     {
       id: 3,
@@ -67,7 +75,9 @@ const CandidateListPage = () => {
       avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&auto=format&fit=crop&q=80',
       skills: ['LangChain', 'React', 'FastAPI'],
       expEdu: '5.5 Yrs • B.Eng. Software',
-      status: 'Interviewing'
+      status: 'Interviewing',
+      job: 'Sr. Frontend Engineer (Req #FE-802)',
+      availability: '2 Weeks'
     },
     {
       id: 4,
@@ -77,7 +87,9 @@ const CandidateListPage = () => {
       avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=100&auto=format&fit=crop&q=80',
       skills: ['Figma Tokens', 'Storybook', 'CSS'],
       expEdu: '7.1 Yrs • B.A. HCI & Design',
-      status: 'Shortlisted'
+      status: 'Shortlisted',
+      job: 'Sr. Frontend Engineer (Req #FE-802)',
+      availability: 'Immediate'
     },
     {
       id: 5,
@@ -87,20 +99,80 @@ const CandidateListPage = () => {
       avatar: 'https://images.unsplash.com/photo-1580489944761-15a19d654956?w=100&auto=format&fit=crop&q=80',
       skills: ['Golang', 'Kafka', 'K8s'],
       expEdu: '9.4 Yrs • M.Tech Systems Eng',
-      status: 'Under Review'
+      status: 'Under Review',
+      job: 'Cloud Architect (Req #CA-201)',
+      availability: '2 Weeks'
     }
   ];
+
+  const filteredCandidates = baseCandidates.filter(c => {
+    // TC_CL_001
+    if (selectedJobRequisition && c.job !== selectedJobRequisition) return false;
+
+    // TC_CL_004
+    if (poolSearchQuery && !c.name.toLowerCase().includes(poolSearchQuery.toLowerCase()) && !c.title.toLowerCase().includes(poolSearchQuery.toLowerCase())) return false;
+
+    // TC_CL_005
+    if (searchQuery) {
+       const term = searchQuery.toLowerCase();
+       const hasMatch = c.name.toLowerCase().includes(term) || c.title.toLowerCase().includes(term) || c.skills.some(s => s.toLowerCase().includes(term));
+       if (!hasMatch) return false;
+    }
+
+    // TC_CL_006
+    if (selectedExpBracket) {
+      const expMatch = c.expEdu.match(/([\d.]+)\s*Yrs/i);
+      const expYears = expMatch ? parseFloat(expMatch[1]) : 0;
+      if (selectedExpBracket === '0-2 Yrs' && expYears > 2) return false;
+      if (selectedExpBracket === '3-5 Yrs' && (expYears <= 2 || expYears > 5)) return false;
+      if (selectedExpBracket === '6+ Yrs' && expYears <= 5) return false;
+    }
+
+    // TC_CL_007
+    if (Object.values(skillsFilter).some(Boolean)) {
+      const hasReact = skillsFilter.reactNext && c.skills.some(s => s.toLowerCase().includes('react') || s.toLowerCase().includes('next'));
+      const hasTs = skillsFilter.typescript && c.skills.some(s => s.toLowerCase().includes('typescript'));
+      const hasPython = skillsFilter.python && c.skills.some(s => s.toLowerCase().includes('python') || s.toLowerCase().includes('fastapi'));
+      const hasAws = skillsFilter.aws && c.skills.some(s => s.toLowerCase().includes('aws') || s.toLowerCase().includes('cloud'));
+      
+      const activeFiltersCount = Object.values(skillsFilter).filter(Boolean).length;
+      const matchedFiltersCount = [hasReact, hasTs, hasPython, hasAws].filter(Boolean).length;
+      if (activeFiltersCount > 0 && matchedFiltersCount === 0) return false;
+    }
+
+    // TC_CL_008
+    if (availability && c.availability !== availability && availability !== 'Any') return false;
+
+    return true;
+  });
+
+  const sortedCandidates = [...filteredCandidates].sort((a, b) => {
+    if (sortOption === 'Highest AI Match') return b.matchPct - a.matchPct;
+    if (sortOption === 'Name A-Z') return a.name.localeCompare(b.name);
+    if (sortOption === 'Experience (High to Low)') {
+      const getExp = (str) => {
+        const m = str.match(/([\d.]+)\s*Yrs/i);
+        return m ? parseFloat(m[1]) : 0;
+      };
+      return getExp(b.expEdu) - getExp(a.expEdu);
+    }
+    return 0;
+  });
+
+  const itemsPerPage = 5;
+  const totalPages = Math.ceil(sortedCandidates.length / itemsPerPage);
+  const paginatedCandidates = sortedCandidates.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
   const handleSelectRow = (id) => {
     setSelectedRows(prev => ({ ...prev, [id]: !prev[id] }));
   };
 
   const handleSelectAll = () => {
-    if (Object.keys(selectedRows).length === candidates.length) {
+    if (Object.keys(selectedRows).length === paginatedCandidates.length && paginatedCandidates.length > 0) {
       setSelectedRows({});
     } else {
       const all = {};
-      candidates.forEach(c => { all[c.id] = true; });
+      paginatedCandidates.forEach(c => { all[c.id] = true; });
       setSelectedRows(all);
     }
   };
@@ -112,14 +184,16 @@ const CandidateListPage = () => {
 
   const handleResetFilters = () => {
     setSearchQuery('');
+    setPoolSearchQuery('');
     setSelectedExpBracket('');
-    setSkillsFilter({ reactNext: true, typescript: true, python: false, aws: false });
-    setAvailability('Immediate');
+    setSkillsFilter({ reactNext: false, typescript: false, python: false, aws: false });
+    setAvailability('');
     showToast('Filters reset to default view.', 'info');
   };
 
   const handleExportCsv = () => {
-    showToast('Exporting candidate dataset to CSV format (SRS REQ-5.4)... Download ready!', 'success');
+    const count = Object.keys(selectedRows).filter(k => selectedRows[k]).length;
+    showToast(`Exporting ${count} selected candidates to CSV format (SRS REQ-5.4)... Download ready!`, 'success');
   };
 
   // ==========================================
@@ -167,7 +241,7 @@ const CandidateListPage = () => {
           >
             <span>Candidate Pipeline</span>
             <span style={{ fontSize: '0.7rem', padding: '2px 7px', borderRadius: 9999, background: activeTab === 'pipeline' ? 'rgba(255,255,255,0.25)' : '#e2e8f0', color: activeTab === 'pipeline' ? '#ffffff' : '#475569' }}>
-              48 Results
+              {filteredCandidates.length} Results
             </span>
           </button>
 
@@ -187,11 +261,16 @@ const CandidateListPage = () => {
 
         {/* Right Job Indicator */}
         <div className="job-position-selector">
-          <button type="button" className="job-selector-btn" style={{ padding: '6px 12px' }}>
-            <CheckCircle2 size={15} color="#4f46e5" />
-            <span>Sr. Frontend Engineer (Req #FE-802)</span>
-            <ChevronDown size={13} color="#64748b" />
-          </button>
+          <select 
+            className="job-selector-btn" 
+            style={{ padding: '6px 12px', appearance: 'none', background: 'transparent', border: 'none', outline: 'none', cursor: 'pointer', color: '#0f172a', fontWeight: 600, fontSize: '0.85rem' }}
+            value={selectedJobRequisition}
+            onChange={(e) => setSelectedJobRequisition(e.target.value)}
+          >
+            <option value="All Roles">All Roles</option>
+            <option value="Sr. Frontend Engineer (Req #FE-802)">Sr. Frontend Engineer (Req #FE-802)</option>
+            <option value="Cloud Architect (Req #CA-201)">Cloud Architect (Req #CA-201)</option>
+          </select>
         </div>
       </div>
 
@@ -215,7 +294,7 @@ const CandidateListPage = () => {
               type="button"
               className="btn-primary"
               style={{ width: 'auto', padding: '0 20px', height: 42 }}
-              onClick={() => showToast('CV Upload ingestion service active (SRS REQ-3.1/3.2). PDF Parsing queue ready.', 'info')}
+              onClick={() => navigate(ROUTES.CV_UPLOAD)}
             >
               <UploadCloud size={17} />
               <span>Upload CV / Bulk Import</span>
@@ -385,17 +464,25 @@ const CandidateListPage = () => {
                       className="form-input"
                       style={{ height: 34, paddingLeft: 30, fontSize: '0.775rem' }}
                       placeholder="Search shortlisted pool..."
+                      value={poolSearchQuery}
+                      onChange={(e) => setPoolSearchQuery(e.target.value)}
                     />
                   </div>
-                  <span style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600 }}>48 Results</span>
+                  <span style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600 }}>{filteredCandidates.length} Results</span>
                 </div>
 
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                   <span style={{ fontSize: '0.75rem', color: '#64748b' }}>Sort:</span>
-                  <button type="button" className="job-selector-btn" style={{ padding: '5px 10px', fontSize: '0.75rem' }}>
-                    <span>Highest AI Match</span>
-                    <ChevronDown size={13} />
-                  </button>
+                  <select 
+                    className="job-selector-btn" 
+                    style={{ padding: '5px 10px', fontSize: '0.75rem', appearance: 'none', background: 'transparent', border: 'none', outline: 'none', cursor: 'pointer', color: '#0f172a', fontWeight: 600 }}
+                    value={sortOption}
+                    onChange={(e) => setSortOption(e.target.value)}
+                  >
+                    <option value="Highest AI Match">Highest AI Match</option>
+                    <option value="Name A-Z">Name A-Z</option>
+                    <option value="Experience (High to Low)">Experience (High to Low)</option>
+                  </select>
                   <button
                     type="button"
                     className="btn-secondary"
@@ -416,7 +503,7 @@ const CandidateListPage = () => {
                         <input
                           type="checkbox"
                           onChange={handleSelectAll}
-                          checked={Object.keys(selectedRows).length === candidates.length}
+                          checked={paginatedCandidates.length > 0 && Object.keys(selectedRows).length === paginatedCandidates.length}
                         />
                       </th>
                       <th>CANDIDATE PROFILE</th>
@@ -428,7 +515,7 @@ const CandidateListPage = () => {
                     </tr>
                   </thead>
                   <tbody>
-                    {candidates.map(candidate => (
+                    {paginatedCandidates.map(candidate => (
                       <tr key={candidate.id} style={{ background: selectedRows[candidate.id] ? '#f8fafc' : 'transparent' }}>
                         <td>
                           <input
@@ -501,7 +588,9 @@ const CandidateListPage = () => {
 
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12, marginTop: 18, paddingTop: 14, borderTop: '1px solid #f1f5f9' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-                  <span style={{ fontSize: '0.75rem', color: '#64748b' }}>Showing 1 to 5 of 48 shortlisted candidates</span>
+                  <span style={{ fontSize: '0.75rem', color: '#64748b' }}>
+                    Showing {(currentPage - 1) * itemsPerPage + 1} to {Math.min(currentPage * itemsPerPage, filteredCandidates.length)} of {filteredCandidates.length} shortlisted candidates
+                  </span>
                   <button
                     type="button"
                     className="link-button"
@@ -522,13 +611,33 @@ const CandidateListPage = () => {
                 </div>
 
                 <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                  <button type="button" className="pill-btn" style={{ padding: '3px 8px', fontSize: '0.725rem' }}>‹</button>
-                  <button type="button" className="pill-btn active" style={{ padding: '3px 9px', fontSize: '0.725rem' }}>1</button>
-                  <button type="button" className="pill-btn" style={{ padding: '3px 9px', fontSize: '0.725rem' }}>2</button>
-                  <button type="button" className="pill-btn" style={{ padding: '3px 9px', fontSize: '0.725rem' }}>3</button>
-                  <span style={{ color: '#94a3b8', fontSize: '0.75rem' }}>...</span>
-                  <button type="button" className="pill-btn" style={{ padding: '3px 9px', fontSize: '0.725rem' }}>10</button>
-                  <button type="button" className="pill-btn" style={{ padding: '3px 8px', fontSize: '0.725rem' }}>›</button>
+                  <button 
+                    type="button" 
+                    className="pill-btn" 
+                    style={{ padding: '3px 8px', fontSize: '0.725rem' }}
+                    onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                    disabled={currentPage === 1}
+                  >‹</button>
+                  
+                  {Array.from({ length: totalPages }).map((_, idx) => (
+                    <button 
+                      key={idx}
+                      type="button" 
+                      className={`pill-btn ${currentPage === idx + 1 ? 'active' : ''}`} 
+                      style={{ padding: '3px 9px', fontSize: '0.725rem' }}
+                      onClick={() => setCurrentPage(idx + 1)}
+                    >
+                      {idx + 1}
+                    </button>
+                  ))}
+                  
+                  <button 
+                    type="button" 
+                    className="pill-btn" 
+                    style={{ padding: '3px 8px', fontSize: '0.725rem' }}
+                    onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                    disabled={currentPage === totalPages || totalPages === 0}
+                  >›</button>
                 </div>
               </div>
             </div>
@@ -551,7 +660,7 @@ const CandidateListPage = () => {
               <div>
                 <h1 className="page-h1">AI Candidate Recommendations</h1>
                 <p className="page-subtitle">
-                  Multi-agent neural matching tailored for Senior Frontend Engineer role based on semantic ontology and code benchmarks.
+                  Multi-agent neural matching tailored for {selectedJobRequisition === 'All Roles' ? 'all' : selectedJobRequisition} role based on semantic ontology and code benchmarks.
                 </p>
               </div>
             </div>
