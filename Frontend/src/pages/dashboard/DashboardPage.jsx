@@ -1,8 +1,97 @@
+import { useState } from 'react';
+
 import StatisticsCards from '../../features/dashboard/components/StatisticsCards';
 import CandidateCountWidget from '../../features/dashboard/components/CandidateCountWidget';
 import ProcessingStatusWidget from '../../features/dashboard/components/ProcessingStatusWidget';
 
+const jobStatisticsData = {
+  week: [
+    {
+      label: 'Active jobs',
+      value: 5,
+      progress: 55,
+      color: 'bg-blue-600',
+    },
+    {
+      label: 'Closed jobs',
+      value: 1,
+      progress: 15,
+      color: 'bg-cyan-500',
+    },
+    {
+      label: 'Draft jobs',
+      value: 1,
+      progress: 10,
+      color: 'bg-amber-500',
+    },
+    {
+      label: 'Jobs with CVs',
+      value: 4,
+      progress: 45,
+      color: 'bg-green-500',
+    },
+  ],
+
+  month: [
+    {
+      label: 'Active jobs',
+      value: 8,
+      progress: 70,
+      color: 'bg-blue-600',
+    },
+    {
+      label: 'Closed jobs',
+      value: 3,
+      progress: 25,
+      color: 'bg-cyan-500',
+    },
+    {
+      label: 'Draft jobs',
+      value: 1,
+      progress: 10,
+      color: 'bg-amber-500',
+    },
+    {
+      label: 'Jobs with CVs',
+      value: 9,
+      progress: 75,
+      color: 'bg-green-500',
+    },
+  ],
+
+  year: [
+    {
+      label: 'Active jobs',
+      value: 24,
+      progress: 80,
+      color: 'bg-blue-600',
+    },
+    {
+      label: 'Closed jobs',
+      value: 14,
+      progress: 48,
+      color: 'bg-cyan-500',
+    },
+    {
+      label: 'Draft jobs',
+      value: 4,
+      progress: 18,
+      color: 'bg-amber-500',
+    },
+    {
+      label: 'Jobs with CVs',
+      value: 20,
+      progress: 68,
+      color: 'bg-green-500',
+    },
+  ],
+};
+
 const DashboardPage = () => {
+  const [jobPeriod, setJobPeriod] = useState('month');
+
+  const currentJobStatistics = jobStatisticsData[jobPeriod];
+
   return (
     <div className="space-y-5">
       {/* =========================
@@ -47,7 +136,8 @@ const DashboardPage = () => {
             </div>
 
             <select
-              defaultValue="month"
+              value={jobPeriod}
+              onChange={(event) => setJobPeriod(event.target.value)}
               className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs text-slate-600 outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
             >
               <option value="month">This month</option>
@@ -58,65 +148,29 @@ const DashboardPage = () => {
 
           {/* Job Statistics Bars */}
           <div className="mt-6 space-y-5">
-            {/* Active Jobs */}
-            <div className="grid grid-cols-[110px_1fr_30px] items-center gap-3">
-              <span className="text-sm text-slate-600">
-                Active jobs
-              </span>
+            {currentJobStatistics.map((item) => (
+              <div
+                key={item.label}
+                className="grid grid-cols-[110px_1fr_30px] items-center gap-3"
+              >
+                <span className="text-sm text-slate-600">
+                  {item.label}
+                </span>
 
-              <div className="h-2 overflow-hidden rounded-full bg-slate-100">
-                <div className="h-full w-[70%] rounded-full bg-blue-600" />
+                <div className="h-2 overflow-hidden rounded-full bg-slate-100">
+                  <div
+                    className={`h-full rounded-full transition-all duration-300 ${item.color}`}
+                    style={{
+                      width: `${item.progress}%`,
+                    }}
+                  />
+                </div>
+
+                <span className="text-right text-sm font-semibold text-slate-700">
+                  {item.value}
+                </span>
               </div>
-
-              <span className="text-right text-sm font-semibold text-slate-700">
-                8
-              </span>
-            </div>
-
-            {/* Closed Jobs */}
-            <div className="grid grid-cols-[110px_1fr_30px] items-center gap-3">
-              <span className="text-sm text-slate-600">
-                Closed jobs
-              </span>
-
-              <div className="h-2 overflow-hidden rounded-full bg-slate-100">
-                <div className="h-full w-[25%] rounded-full bg-cyan-500" />
-              </div>
-
-              <span className="text-right text-sm font-semibold text-slate-700">
-                3
-              </span>
-            </div>
-
-            {/* Draft Jobs */}
-            <div className="grid grid-cols-[110px_1fr_30px] items-center gap-3">
-              <span className="text-sm text-slate-600">
-                Draft jobs
-              </span>
-
-              <div className="h-2 overflow-hidden rounded-full bg-slate-100">
-                <div className="h-full w-[10%] rounded-full bg-amber-500" />
-              </div>
-
-              <span className="text-right text-sm font-semibold text-slate-700">
-                1
-              </span>
-            </div>
-
-            {/* Jobs with CVs */}
-            <div className="grid grid-cols-[110px_1fr_30px] items-center gap-3">
-              <span className="text-sm text-slate-600">
-                Jobs with CVs
-              </span>
-
-              <div className="h-2 overflow-hidden rounded-full bg-slate-100">
-                <div className="h-full w-[75%] rounded-full bg-green-500" />
-              </div>
-
-              <span className="text-right text-sm font-semibold text-slate-700">
-                9
-              </span>
-            </div>
+            ))}
           </div>
         </section>
 
