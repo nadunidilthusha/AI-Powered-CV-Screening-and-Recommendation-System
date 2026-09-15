@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import ScheduleInterviewModal from '../../components/modals/ScheduleInterviewModal';
 import CustomizeWeightsModal from '../../components/modals/CustomizeWeightsModal';
+import { mockCandidates } from '../../data/mockCandidates';
 import '../../styles/pages.css';
 
 const CandidateListPage = () => {
@@ -30,84 +31,23 @@ const CandidateListPage = () => {
   const [selectedRows, setSelectedRows] = useState({});
   const [searchQuery, setSearchQuery] = useState('');
   const [poolSearchQuery, setPoolSearchQuery] = useState('');
-  const [selectedExpBracket, setSelectedExpBracket] = useState('6+ Yrs');
+  const [selectedExpBracket, setSelectedExpBracket] = useState(null);
   const [skillsFilter, setSkillsFilter] = useState({
-    reactNext: true,
-    typescript: true,
+    reactNext: false,
+    typescript: false,
     python: false,
     aws: false
   });
-  const [availability, setAvailability] = useState('Immediate');
-  const [selectedJobRequisition, setSelectedJobRequisition] = useState('Sr. Frontend Engineer (Req #FE-802)');
+  const [availability, setAvailability] = useState(null);
+  const [selectedJobRequisition, setSelectedJobRequisition] = useState('All Roles');
   const [sortOption, setSortOption] = useState('Highest AI Match');
   const [currentPage, setCurrentPage] = useState(1);
 
-  const baseCandidates = [
-    {
-      id: 1,
-      name: 'Dishan Perera',
-      title: 'Lead Frontend Engineer',
-      matchPct: 96,
-      avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80',
-      skills: ['React 18', 'Next.js 14', 'TypeScript'],
-      expEdu: '6.2 Yrs • B.Sc. SE (First Class)',
-      status: 'Shortlisted',
-      job: 'Sr. Frontend Engineer (Req #FE-802)',
-      availability: 'Immediate'
-    },
-    {
-      id: 2,
-      name: 'Maya Lin',
-      title: 'Cloud Architect & Full Stack',
-      matchPct: 94,
-      avatar: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=100&auto=format&fit=crop&q=80',
-      skills: ['AWS', 'Python', 'FastAPI'],
-      expEdu: '8.0 Yrs • M.Sc. CS (Stanford)',
-      status: 'Under Review',
-      job: 'Cloud Architect (Req #CA-201)',
-      availability: '1 Month'
-    },
-    {
-      id: 3,
-      name: 'Lucas Vance',
-      title: 'Full Stack & LLM Integrator',
-      matchPct: 92,
-      avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&auto=format&fit=crop&q=80',
-      skills: ['LangChain', 'React', 'FastAPI'],
-      expEdu: '5.5 Yrs • B.Eng. Software',
-      status: 'Interviewing',
-      job: 'Sr. Frontend Engineer (Req #FE-802)',
-      availability: '2 Weeks'
-    },
-    {
-      id: 4,
-      name: 'Tariq Al-Mansoor',
-      title: 'Staff Design Technologist',
-      matchPct: 89,
-      avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=100&auto=format&fit=crop&q=80',
-      skills: ['Figma Tokens', 'Storybook', 'CSS'],
-      expEdu: '7.1 Yrs • B.A. HCI & Design',
-      status: 'Shortlisted',
-      job: 'Sr. Frontend Engineer (Req #FE-802)',
-      availability: 'Immediate'
-    },
-    {
-      id: 5,
-      name: 'Ananya Rao',
-      title: 'Distributed Systems Architect',
-      matchPct: 88,
-      avatar: 'https://images.unsplash.com/photo-1580489944761-15a19d654956?w=100&auto=format&fit=crop&q=80',
-      skills: ['Golang', 'Kafka', 'K8s'],
-      expEdu: '9.4 Yrs • M.Tech Systems Eng',
-      status: 'Under Review',
-      job: 'Cloud Architect (Req #CA-201)',
-      availability: '2 Weeks'
-    }
-  ];
 
-  const filteredCandidates = baseCandidates.filter(c => {
+
+  const filteredCandidates = mockCandidates.filter(c => {
     // TC_CL_001
-    if (selectedJobRequisition && c.job !== selectedJobRequisition) return false;
+    if (selectedJobRequisition && selectedJobRequisition !== 'All Roles' && c.job !== selectedJobRequisition) return false;
 
     // TC_CL_004
     if (poolSearchQuery && !c.name.toLowerCase().includes(poolSearchQuery.toLowerCase()) && !c.title.toLowerCase().includes(poolSearchQuery.toLowerCase())) return false;
@@ -314,33 +254,33 @@ const CandidateListPage = () => {
             <div className="mini-stat-card">
               <span style={{ fontSize: '0.7rem', fontWeight: 700, color: '#64748b' }}>AI SHORTLISTED</span>
               <div className="stat-num-row">
-                <span className="stat-big-num">48</span>
-                <span style={{ fontSize: '0.725rem', color: '#4f46e5', fontWeight: 700 }}>Top 3.4% of candidate pool</span>
+                <span className="stat-big-num">{filteredCandidates.length}</span>
+                <span style={{ fontSize: '0.725rem', color: '#4f46e5', fontWeight: 700 }}>Top {((filteredCandidates.length / 1420) * 100).toFixed(1)}% of candidate pool</span>
               </div>
               <div className="bar-track" style={{ marginTop: 8 }}>
-                <div className="bar-fill" style={{ width: '34%' }} />
+                <div className="bar-fill" style={{ width: `${Math.min(((filteredCandidates.length / 1420) * 100) * 10, 100)}%` }} />
               </div>
             </div>
 
             <div className="mini-stat-card">
               <span style={{ fontSize: '0.7rem', fontWeight: 700, color: '#64748b' }}>AVERAGE MATCH</span>
               <div className="stat-num-row">
-                <span className="stat-big-num">91.4%</span>
+                <span className="stat-big-num">{filteredCandidates.length > 0 ? Math.round(filteredCandidates.reduce((acc, c) => acc + c.matchPct, 0) / filteredCandidates.length) : 0}%</span>
                 <span style={{ fontSize: '0.725rem', color: '#059669', fontWeight: 700 }}>● Confidence Score: High</span>
               </div>
               <div className="bar-track" style={{ marginTop: 8 }}>
-                <div className="bar-fill" style={{ width: '91%', background: '#10b981' }} />
+                <div className="bar-fill" style={{ width: `${filteredCandidates.length > 0 ? Math.round(filteredCandidates.reduce((acc, c) => acc + c.matchPct, 0) / filteredCandidates.length) : 0}%`, background: '#10b981' }} />
               </div>
             </div>
 
             <div className="mini-stat-card">
               <span style={{ fontSize: '0.7rem', fontWeight: 700, color: '#64748b' }}>PENDING REVIEW</span>
               <div className="stat-num-row">
-                <span className="stat-big-num">14</span>
-                <span style={{ fontSize: '0.725rem', color: '#d97706', fontWeight: 700 }}>● 6 need priority action</span>
+                <span className="stat-big-num">{filteredCandidates.filter(c => c.status === 'Under Review').length}</span>
+                <span style={{ fontSize: '0.725rem', color: '#d97706', fontWeight: 700 }}>● needs priority action</span>
               </div>
               <div className="bar-track" style={{ marginTop: 8 }}>
-                <div className="bar-fill" style={{ width: '45%', background: '#4f46e5' }} />
+                <div className="bar-fill" style={{ width: '40%', background: '#f59e0b' }} />
               </div>
             </div>
           </div>
@@ -935,7 +875,7 @@ const CandidateListPage = () => {
                   type="button"
                   className="btn-secondary"
                   style={{ flex: 1, height: 42, fontSize: '0.8125rem' }}
-                  onClick={() => navigate('/candidates/2')}
+                  onClick={() => navigate('/candidates/6')}
                 >
                   <UserCheck size={14} />
                   <span>Profile</span>
@@ -1011,7 +951,7 @@ const CandidateListPage = () => {
                   type="button"
                   className="btn-secondary"
                   style={{ flex: 1, height: 42, fontSize: '0.8125rem' }}
-                  onClick={() => navigate('/candidates/3')}
+                  onClick={() => navigate('/candidates/7')}
                 >
                   <UserCheck size={14} />
                   <span>View Profile</span>
