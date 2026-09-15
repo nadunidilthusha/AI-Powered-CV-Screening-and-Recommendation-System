@@ -12,5 +12,6 @@ router.use('/auth', authRoutes);
 router.use('/jobs', jobRoutes); // also handles nested /jobs/:jobId/cvs, /candidates, /ranking, /export/*
 router.use('/candidates', candidateRoutes); // for direct /candidates/:id access
 router.use('/admin', adminRoutes);
+router.use('/ai', require('./aiRoutes'));
 
 module.exports = router;
