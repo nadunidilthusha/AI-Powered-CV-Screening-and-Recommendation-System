@@ -6,8 +6,7 @@ import {
 } from 'lucide-react';
 import { ROUTES } from '../../../routes/routePaths';
 
-// Mirrors the links in Sidebar.jsx, so the search bar acts as a quick
-// navigator to the same sections instead of searching data.
+
 const WORKSPACE_ITEMS = [
   { label: 'Dashboard', to: ROUTES.DASHBOARD, icon: LayoutGrid },
   { label: 'Job postings', to: ROUTES.JOBS, icon: Briefcase },
@@ -24,14 +23,10 @@ const ADMIN_ITEMS = [
   { label: 'Database status', to: ROUTES.ADMIN_DATABASE_STATUS, icon: Database },
 ];
 
-// Note: `pageTitle` prop was removed. It was hardcoded to "Dashboard" in
-// both AdminLayout.jsx and HrLayout.jsx and never actually changed per
-// route, so it showed "Dashboard" on every page. Each page already renders
-// its own heading in its content (e.g. "Job postings"), so this bar was
-// redundant — removing it here instead of trying to sync it with the router.
+
 const Navbar = ({
   searchPlaceholder = 'Search...',
-  user = { name: 'User', role: 'Member', initials: 'U' },
+  user = { name: 'User', role: 'Member', initials: 'U', avatarUrl: null },
 }) => {
   const [menuOpen, setMenuOpen] = useState(false);
   const [query, setQuery] = useState('');
@@ -96,9 +91,17 @@ const Navbar = ({
 
         <div className="relative">
           <button onClick={() => setMenuOpen((open) => !open)} className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center text-xs font-semibold">
-              {user.initials}
-            </div>
+            {user.avatarUrl ? (
+              <img
+                src={user.avatarUrl}
+                alt={user.name}
+                className="w-8 h-8 rounded-full object-cover"
+              />
+            ) : (
+              <div className="w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center text-xs font-semibold">
+                {user.initials}
+              </div>
+            )}
             <div className="text-left leading-tight hidden sm:block">
               <p className="text-sm font-medium text-slate-800">{user.name}</p>
               <p className="text-xs text-slate-400">{user.role}</p>

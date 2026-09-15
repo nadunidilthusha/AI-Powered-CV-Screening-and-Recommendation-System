@@ -19,6 +19,7 @@ const HrLayout = () => {
             name: user?.name ?? 'Nadeesha R.',
             role: 'HR Manager',
             initials: user?.initials ?? 'NR',
+            avatarUrl: user?.avatarUrl ?? null,
           }}
         />
         <main className="flex-1 p-6 bg-[#F6F8FC]">

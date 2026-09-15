@@ -18,6 +18,7 @@ const AdminLayout = () => {
             name: user?.name ?? 'Admin User',
             role: 'Administrator',
             initials: user?.initials ?? 'AD',
+            avatarUrl: user?.avatarUrl ?? null,
           }}
         />
         <main className="flex-1 p-6 bg-slate-50">

@@ -2,6 +2,29 @@ import { createContext, useContext, useState } from 'react';
 
 const AuthContext = createContext(null);
 
+const readSavedSession = () => {
+  const sources = [localStorage, sessionStorage];
+  for (const store of sources) {
+    const savedUser = store.getItem('user');
+    const token = store.getItem('token');
+    if (savedUser && token) {
+      try {
+        return JSON.parse(savedUser);
+      } catch (e) {
+        /* ignore malformed data */
+      }
+    }
+  }
+  return null;
+};
+
+const clearAllSessionStorage = () => {
+  localStorage.removeItem('token');
+  localStorage.removeItem('user');
+  sessionStorage.removeItem('token');
+  sessionStorage.removeItem('user');
+};
+
 export const AuthProvider = ({ children }) => {
   // Pre-seed demo users in localStorage
   const [users, setUsers] = useState(() => {
@@ -23,18 +46,8 @@ export const AuthProvider = ({ children }) => {
     ];
   });
 
-  // Active user session
-  const [user, setUser] = useState(() => {
-    const saved = localStorage.getItem('user');
-    const token = localStorage.getItem('token');
-    // Only treat the user as logged in if BOTH a saved user and a token
-    // exist. No auto-seeding a demo session here — if nothing is saved,
-    // the user starts out logged out and sees the login page first.
-    if (saved && token) {
-      try { return JSON.parse(saved); } catch (e) { /* ignore */ }
-    }
-    return null;
-  });
+
+  const [user, setUser] = useState(readSavedSession);
 
   // Toast notifications
   const [toasts, setToasts] = useState([]);
@@ -86,8 +99,16 @@ export const AuthProvider = ({ children }) => {
     };
 
     setUser(sessionUser);
-    localStorage.setItem('token', token);
-    localStorage.setItem('user', JSON.stringify(sessionUser));
+
+    // "Remember workstation" decides WHERE the session lives:
+    // - checked  -> localStorage: survives closing the browser entirely
+    // - unchecked -> sessionStorage: cleared as soon as this tab/window closes,
+    //   so reopening the app will show the login page again, as expected.
+    clearAllSessionStorage();
+    const storage = remember ? localStorage : sessionStorage;
+    storage.setItem('token', token);
+    storage.setItem('user', JSON.stringify(sessionUser));
+
     showToast(`Welcome back, ${sessionUser.name}!`, 'success');
     return sessionUser;
   };
@@ -122,6 +143,8 @@ export const AuthProvider = ({ children }) => {
     };
 
     setUser(sessionUser);
+    // New signups are remembered by default, same as most real apps.
+    clearAllSessionStorage();
     localStorage.setItem('token', token);
     localStorage.setItem('user', JSON.stringify(sessionUser));
     showToast('Recruiter account created successfully! Workspace activated.', 'success');
@@ -137,15 +160,31 @@ export const AuthProvider = ({ children }) => {
 
   const logout = () => {
     setUser(null);
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
+    clearAllSessionStorage();
     setIsLogoutModalOpen(false);
     showToast('Signed out of recruitment workspace.', 'info');
+  };
+
+  // Merges `updates` into the current user (e.g. name, phone, avatarUrl)
+  // and re-persists to whichever storage currently holds the session, so
+  // changes made in Settings (like a new profile photo) show up everywhere
+  // that reads `user` from this context — Navbar, Sidebar, etc.
+  const updateUser = (updates) => {
+    setUser((prev) => {
+      const next = { ...prev, ...updates };
+      if (localStorage.getItem('user')) {
+        localStorage.setItem('user', JSON.stringify(next));
+      } else if (sessionStorage.getItem('user')) {
+        sessionStorage.setItem('user', JSON.stringify(next));
+      }
+      return next;
+    });
   };
 
   const value = {
     user,
     setUser,
+    updateUser,
     login,
     register,
     forgotPassword,

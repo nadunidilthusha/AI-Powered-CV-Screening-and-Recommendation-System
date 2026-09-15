@@ -15,9 +15,11 @@ const INITIAL_PROFILE = {
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 const SettingsPage = () => {
-  const { showToast } = useAuth();
+  const { user, showToast, updateUser } = useAuth();
   const [profile, setProfile] = useState(INITIAL_PROFILE);
-  const [avatarUrl, setAvatarUrl] = useState(null); // null = show initials fallback
+  // Avatar lives in AuthContext (not local state) so Navbar and Sidebar,
+  // which also read `user` from that context, show the same photo.
+  const avatarUrl = user?.avatarUrl ?? null;
   const [errors, setErrors] = useState({});
   const fileInputRef = useRef(null);
 
@@ -55,20 +57,22 @@ const SettingsPage = () => {
       return;
     }
 
-    // Preview it locally. In production, upload `file` via FormData to your
-    // backend and set avatarUrl to the URL the server returns instead.
-    setAvatarUrl(URL.createObjectURL(file));
+    // Preview it locally and push it into AuthContext immediately, so it
+    // shows up in the Navbar right away. In production, upload `file` via
+    // FormData to your backend first and pass the URL it returns instead.
+    const previewUrl = URL.createObjectURL(file);
+    updateUser({ avatarUrl: previewUrl });
+    showToast('Profile photo updated.', 'success');
   };
 
   const handleRemove = () => {
-    setAvatarUrl(null);
+    updateUser({ avatarUrl: null });
     if (fileInputRef.current) fileInputRef.current.value = '';
     // TODO: also call DELETE /api/users/me/avatar on the backend
   };
 
   const handleCancel = () => {
     setProfile(INITIAL_PROFILE);
-    setAvatarUrl(null);
     setErrors({});
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
