@@ -10,12 +10,15 @@ import {
 } from 'lucide-react';
 import ScheduleInterviewModal from '../../components/modals/ScheduleInterviewModal';
 import ShareDossierModal from '../../components/modals/ShareDossierModal';
+import { mockCandidates } from '../../data/mockCandidates';
 import '../../styles/pages.css';
 
 const CandidateDetailsPage = () => {
   const { id } = useParams();
   const { showToast } = useAuth();
-  const candidateName = 'Dishan Perera';
+  
+  const candidate = mockCandidates.find(c => c.id === parseInt(id)) || mockCandidates[0];
+  const candidateName = candidate.name;
 
   const [activeTab, setActiveTab] = useState('eval');
   const [interviewModalOpen, setInterviewModalOpen] = useState(false);
@@ -161,7 +164,7 @@ const CandidateDetailsPage = () => {
           <div style={{ textAlign: 'center', marginBottom: 18 }}>
             <div style={{ position: 'relative', width: 72, height: 72, margin: '0 auto 12px auto' }}>
               <img
-                src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=140&auto=format&fit=crop&q=80"
+                src={candidate.avatar}
                 alt={candidateName}
                 style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover', border: '3px solid #eef2ff' }}
               />
@@ -171,31 +174,31 @@ const CandidateDetailsPage = () => {
             </div>
 
             <div style={{ display: 'inline-flex', alignItems: 'center', gap: 4, background: '#f5f3ff', color: '#7c3aed', fontSize: '0.7rem', fontWeight: 800, padding: '3px 10px', borderRadius: 9999, marginBottom: 8 }}>
-              <Sparkles size={12} /> Top 2% Applicant
+              <Sparkles size={12} /> Top {Math.max(1, Math.round(100 - candidate.matchPct))}% Applicant
             </div>
 
             <h2 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#0f172a' }}>{candidateName}</h2>
-            <p style={{ fontSize: '0.8125rem', color: '#4f46e5', fontWeight: 700 }}>Senior Frontend Architect</p>
-            <p style={{ fontSize: '0.75rem', color: '#64748b', marginTop: 2 }}>Ex-Virtusa Corp • 📍 Colombo (Remote)</p>
+            <p style={{ fontSize: '0.8125rem', color: '#4f46e5', fontWeight: 700 }}>{candidate.title}</p>
+            <p style={{ fontSize: '0.75rem', color: '#64748b', marginTop: 2 }}>{candidate.job} • 📍 Remote</p>
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 12, padding: 12, marginBottom: 18 }}>
             <div>
               <div style={{ fontSize: '0.6875rem', color: '#64748b' }}>Experience</div>
-              <div style={{ fontSize: '0.925rem', fontWeight: 800, color: '#0f172a' }}>6.2 <span style={{ fontSize: '0.75rem', fontWeight: 500 }}>Years</span></div>
+              <div style={{ fontSize: '0.925rem', fontWeight: 800, color: '#0f172a' }}>{candidate.expEdu.split('•')[0].trim().replace('Yrs', '')} <span style={{ fontSize: '0.75rem', fontWeight: 500 }}>Years</span></div>
             </div>
             <div>
               <div style={{ fontSize: '0.6875rem', color: '#64748b' }}>Notice Window</div>
-              <div style={{ fontSize: '0.925rem', fontWeight: 800, color: '#0f172a' }}>2 <span style={{ fontSize: '0.75rem', fontWeight: 500 }}>Weeks</span></div>
+              <div style={{ fontSize: '0.925rem', fontWeight: 800, color: '#0f172a' }}>{candidate.availability}</div>
             </div>
             <div>
-              <div style={{ fontSize: '0.6875rem', color: '#64748b' }}>Expected Comp</div>
-              <div style={{ fontSize: '0.925rem', fontWeight: 800, color: '#0f172a' }}>$48k <span style={{ fontSize: '0.75rem', fontWeight: 500 }}>/yr</span></div>
+              <div style={{ fontSize: '0.6875rem', color: '#64748b' }}>Match Pct</div>
+              <div style={{ fontSize: '0.925rem', fontWeight: 800, color: '#0f172a' }}>{candidate.matchPct}%</div>
             </div>
             <div>
               <div style={{ fontSize: '0.6875rem', color: '#64748b' }}>Pipeline Phase</div>
               <div style={{ fontSize: '0.85rem', fontWeight: 800, color: '#10b981', display: 'flex', alignItems: 'center', gap: 4 }}>
-                <span className="status-dot-green" /> Immediate
+                <span className="status-dot-green" /> {candidate.status}
               </div>
             </div>
           </div>
@@ -204,7 +207,7 @@ const CandidateDetailsPage = () => {
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               <FileText size={18} color="#4f46e5" />
               <div style={{ textAlign: 'left' }}>
-                <div style={{ fontSize: '0.775rem', fontWeight: 700, color: '#0f172a' }}>Dishan_Perera_Resume.pdf</div>
+                <div style={{ fontSize: '0.775rem', fontWeight: 700, color: '#0f172a' }}>{candidateName.replace(/\s+/g, '_')}_Resume.pdf</div>
                 <div style={{ fontSize: '0.6875rem', color: '#64748b' }}>1.6 MB • OCR Verified</div>
               </div>
             </div>

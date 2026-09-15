@@ -1,4 +1,9 @@
+import { useState } from 'react';
+
 const ApiConfigurationPage = () => {
+  // State to handle the TC_AD_013 Reveal toggle fix
+  const [showOpenAiKey, setShowOpenAiKey] = useState(false);
+
   return (
     <div className="max-w-4xl mx-auto">
       <h1 className="text-2xl font-bold text-slate-900 mb-6">API Configuration</h1>
@@ -17,14 +22,18 @@ const ApiConfigurationPage = () => {
               </span>
             </div>
             <div className="flex gap-3">
+              {/* TC_AD_013 FIX: Toggles type between text and password */}
               <input 
-                type="password" 
+                type={showOpenAiKey ? "text" : "password"} 
                 defaultValue="sk-proj-xxxxxxxxxxxxxxxxxxxxxxxxxxxx" 
                 readOnly
                 className="flex-1 px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm text-slate-500 focus:outline-none" 
               />
-              <button className="px-4 py-2 text-sm font-semibold text-slate-700 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors">
-                Reveal
+              <button 
+                onClick={() => setShowOpenAiKey(!showOpenAiKey)}
+                className="px-4 py-2 text-sm font-semibold text-slate-700 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors w-24"
+              >
+                {showOpenAiKey ? "Hide" : "Reveal"}
               </button>
             </div>
           </div>

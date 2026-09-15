@@ -161,17 +161,18 @@ const LoginPage = () => {
             )}
           </div>
 
-          <div className="form-options-row">
-            <label className="checkbox-label">
+          <div className="form-options-row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+            <label className="checkbox-label" style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
               <input
                 type="checkbox"
                 checked={rememberWorkstation}
                 onChange={(e) => setRememberWorkstation(e.target.checked)}
+                style={{ cursor: 'pointer' }}
               />
-              <span>Remember workstation</span>
+              <span style={{ fontSize: '0.875rem', color: '#475569' }}>Remember workstation</span>
             </label>
 
-            <Link to={ROUTES.FORGOT_PASSWORD} className="link-button">
+            <Link to={ROUTES.FORGOT_PASSWORD} className="link-button" style={{ fontSize: '0.875rem', color: '#4f46e5', textDecoration: 'none', fontWeight: 500 }}>
               Forgot Password?
             </Link>
           </div>
