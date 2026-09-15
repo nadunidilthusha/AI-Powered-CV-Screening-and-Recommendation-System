@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react';
-import { BadgeCheck, Save } from 'lucide-react';
+import { BadgeCheck, ShieldAlert, Save } from 'lucide-react';
 import Card from '../../components/common/Card/Card';
 import Input from '../../components/common/Input/Input';
 import Button from '../../components/common/Button/Button';
@@ -11,6 +11,8 @@ const INITIAL_PROFILE = {
   phone: '0771234567',
   department: 'Human Resources',
 };
+
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 const SettingsPage = () => {
   const { showToast } = useAuth();
@@ -73,8 +75,16 @@ const SettingsPage = () => {
 
   const validate = () => {
     const newErrors = {};
-    if (!profile.fullName.trim()) newErrors.fullName = 'Full name is required.';
-    if (!profile.email.trim()) newErrors.email = 'Work email is required.';
+    if (!profile.fullName.trim()) {
+      newErrors.fullName = 'Full name is required.';
+    }
+
+    if (!profile.email.trim()) {
+      newErrors.email = 'Work email is required.';
+    } else if (!EMAIL_PATTERN.test(profile.email.trim())) {
+      newErrors.email = 'Please enter a valid email address.';
+    }
+
     if (!profile.phone.trim()) newErrors.phone = 'Phone number is required.';
     if (!profile.department.trim()) newErrors.department = 'Department is required.';
     return newErrors;
@@ -138,9 +148,15 @@ const SettingsPage = () => {
           <div>
             <div className="mb-1.5 flex items-center justify-between">
               <label className="text-xs font-semibold text-slate-800">Work email</label>
-              <span className="inline-flex items-center gap-1 rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-bold text-green-700">
-                <BadgeCheck size={12} /> Verified
-              </span>
+              {EMAIL_PATTERN.test(profile.email.trim()) ? (
+                <span className="inline-flex items-center gap-1 rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-bold text-green-700">
+                  <BadgeCheck size={12} /> Verified
+                </span>
+              ) : (
+                <span className="inline-flex items-center gap-1 rounded-full bg-red-100 px-2.5 py-0.5 text-xs font-bold text-red-700">
+                  <ShieldAlert size={12} /> Unverified
+                </span>
+              )}
             </div>
             <input
               type="email"
