@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import useAuth from '../../hooks/useAuth';
 import { ROUTES } from '../../routes/routePaths';
@@ -10,7 +10,7 @@ import {
 } from 'lucide-react';
 import ScheduleInterviewModal from '../../components/modals/ScheduleInterviewModal';
 import CustomizeWeightsModal from '../../components/modals/CustomizeWeightsModal';
-import { mockCandidates } from '../../data/mockCandidates';
+import candidateService from '../../services/candidateService';
 import '../../styles/pages.css';
 
 const CandidateListPage = () => {
@@ -42,10 +42,39 @@ const CandidateListPage = () => {
   const [selectedJobRequisition, setSelectedJobRequisition] = useState('All Roles');
   const [sortOption, setSortOption] = useState('Highest AI Match');
   const [currentPage, setCurrentPage] = useState(1);
+  const [candidates, setCandidates] = useState([]);
+  const [loading, setLoading] = useState(true);
 
+  useEffect(() => {
+    const fetchCandidates = async () => {
+      try {
+        setLoading(true);
+        const res = await candidateService.getCandidates('all');
+        const formatted = res.data.data.map(c => ({
+          id: c._id,
+          name: c.name || c.fullName || 'Unknown',
+          title: 'Candidate',
+          matchPct: c.aiEvaluation?.matchPercentage || 0,
+          avatar: c.cvUrl || 'https://via.placeholder.com/150',
+          skills: c.technicalSkills || [],
+          expEdu: `${c.experience || '0 Yrs'} • ${c.education || 'N/A'}`,
+          status: c.status || 'Under Review',
+          job: 'All Roles',
+          availability: 'Immediate',
+          email: c.email,
+          phone: c.phone
+        }));
+        setCandidates(formatted);
+      } catch (err) {
+        console.error('Failed to fetch candidates:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchCandidates();
+  }, []);
 
-
-  const filteredCandidates = mockCandidates.filter(c => {
+  const filteredCandidates = candidates.filter(c => {
     // TC_CL_001
     if (selectedJobRequisition && selectedJobRequisition !== 'All Roles' && c.job !== selectedJobRequisition) return false;
 

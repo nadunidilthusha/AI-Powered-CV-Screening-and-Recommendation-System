@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import useAuth from '../../hooks/useAuth';
 import { ROUTES } from '../../routes/routePaths';
@@ -10,20 +10,61 @@ import {
 } from 'lucide-react';
 import ScheduleInterviewModal from '../../components/modals/ScheduleInterviewModal';
 import ShareDossierModal from '../../components/modals/ShareDossierModal';
-import { mockCandidates } from '../../data/mockCandidates';
+import candidateService from '../../services/candidateService';
 import '../../styles/pages.css';
 
 const CandidateDetailsPage = () => {
   const { id } = useParams();
   const { showToast } = useAuth();
   
-  const candidate = mockCandidates.find(c => c.id === parseInt(id)) || mockCandidates[0];
-  const candidateName = candidate.name;
+  const [candidate, setCandidate] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchDetails = async () => {
+      try {
+        setLoading(true);
+        // Fallback to first if API fails or mock data id passed
+        const realId = id.length > 5 ? id : '66778899aabbccddeeff0011'; // A valid hex format to avoid cast errors, but ideally the UI should only pass valid mongo IDs.
+        // Let's just fetch all and find the candidate, because the id from the mock list might be just '1'. 
+        // Actually the backend getCandidateById requires a valid mongoose ObjectID. If it's a numeric ID, it will crash.
+        // But since we just replaced CandidateListPage, the IDs from the list page will be real mongo ObjectIDs!
+        const res = await candidateService.getCandidateById(id);
+        const c = res.data.data;
+        const formatted = {
+          id: c._id,
+          name: c.name || c.fullName || 'Unknown',
+          title: 'Candidate',
+          matchPct: c.aiEvaluation?.matchPercentage || 0,
+          avatar: c.cvUrl || 'https://via.placeholder.com/150',
+          skills: c.technicalSkills || [],
+          expEdu: `${c.experience || '0 Yrs'} • ${c.education || 'N/A'}`,
+          status: c.status || 'Under Review',
+          job: 'All Roles',
+          availability: 'Immediate',
+          email: c.email,
+          phone: c.phone
+        };
+        setCandidate(formatted);
+      } catch (err) {
+        console.error('Failed to fetch candidate details:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchDetails();
+  }, [id]);
+
+  const candidateName = candidate?.name || '';
 
   const [activeTab, setActiveTab] = useState('eval');
   const [interviewModalOpen, setInterviewModalOpen] = useState(false);
   const [shareModalOpen, setShareModalOpen] = useState(false);
   const [isShortlisted, setIsShortlisted] = useState(true);
+
+  if (loading || !candidate) {
+    return <div className="p-8 text-center text-slate-500">Loading candidate details...</div>;
+  }
 
   const [isRegeneratingQuestions, setIsRegeneratingQuestions] = useState(false);
   const [questions, setQuestions] = useState([
