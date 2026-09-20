@@ -223,7 +223,7 @@ const CandidateListPage = () => {
           <div className="page-title-row" style={{ marginBottom: 20 }}>
             <div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                <h1 className="page-h1">Candidate Pipeline</h1>
+                <h1 className="text-2xl font-bold tracking-tight text-slate-900">Candidate Pipeline</h1>
                 <span style={{ background: '#ecfdf5', color: '#059669', fontSize: '0.725rem', fontWeight: 700, padding: '4px 10px', borderRadius: 9999, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
                   <Sparkles size={12} /> AI Model v4.2 Active
                 </span>
@@ -232,8 +232,7 @@ const CandidateListPage = () => {
 
             <button
               type="button"
-              className="btn-primary"
-              style={{ width: 'auto', padding: '0 20px', height: 42 }}
+              className="rounded-lg bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-700 flex items-center justify-center gap-2"
               onClick={() => navigate(ROUTES.CV_UPLOAD)}
             >
               <UploadCloud size={17} />
@@ -425,8 +424,7 @@ const CandidateListPage = () => {
                   </select>
                   <button
                     type="button"
-                    className="btn-secondary"
-                    style={{ width: 34, height: 34, padding: 0 }}
+                    className="rounded-lg border border-slate-200 bg-white p-2 text-sm font-semibold text-slate-600 transition hover:bg-slate-50 flex items-center justify-center"
                     onClick={handleExportCsv}
                     title="Export CSV (REQ-5.4)"
                   >
@@ -598,7 +596,7 @@ const CandidateListPage = () => {
             </div>
             <div className="page-title-row">
               <div>
-                <h1 className="page-h1">AI Candidate Recommendations</h1>
+                <h1 className="text-2xl font-bold tracking-tight text-slate-900">AI Candidate Recommendations</h1>
                 <p className="page-subtitle">
                   Multi-agent neural matching tailored for {selectedJobRequisition === 'All Roles' ? 'all' : selectedJobRequisition} role based on semantic ontology and code benchmarks.
                 </p>
@@ -779,7 +777,7 @@ const CandidateListPage = () => {
               <div className="card-actions-row">
                 <button
                   type="button"
-                  className="btn-primary"
+                  className="rounded-lg bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-700 flex items-center justify-center gap-2"
                   style={{ flex: 1, height: 42, fontSize: '0.8125rem' }}
                   onClick={() => handleOpenInterview('Dishan Perera')}
                 >
@@ -788,7 +786,7 @@ const CandidateListPage = () => {
                 </button>
                 <button
                   type="button"
-                  className="btn-secondary"
+                  className="rounded-lg border border-slate-200 bg-white p-2 text-sm font-semibold text-slate-600 transition hover:bg-slate-50 flex items-center justify-center"
                   style={{ width: 42, height: 42, padding: 0 }}
                   onClick={() => navigate('/candidates/1')}
                   title="View Dossier"
@@ -864,7 +862,7 @@ const CandidateListPage = () => {
               <div className="card-actions-row">
                 <button
                   type="button"
-                  className="btn-primary"
+                  className="rounded-lg bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-700 flex items-center justify-center gap-2"
                   style={{ flex: 1, height: 42, fontSize: '0.8125rem' }}
                   onClick={() => handleOpenInterview('Amaya Fernando')}
                 >
@@ -873,7 +871,7 @@ const CandidateListPage = () => {
                 </button>
                 <button
                   type="button"
-                  className="btn-secondary"
+                  className="rounded-lg border border-slate-200 bg-white p-2 text-sm font-semibold text-slate-600 transition hover:bg-slate-50 flex items-center justify-center"
                   style={{ flex: 1, height: 42, fontSize: '0.8125rem' }}
                   onClick={() => navigate('/candidates/6')}
                 >
@@ -949,7 +947,7 @@ const CandidateListPage = () => {
               <div className="card-actions-row">
                 <button
                   type="button"
-                  className="btn-secondary"
+                  className="rounded-lg border border-slate-200 bg-white p-2 text-sm font-semibold text-slate-600 transition hover:bg-slate-50 flex items-center justify-center"
                   style={{ flex: 1, height: 42, fontSize: '0.8125rem' }}
                   onClick={() => navigate('/candidates/7')}
                 >
@@ -958,7 +956,7 @@ const CandidateListPage = () => {
                 </button>
                 <button
                   type="button"
-                  className="btn-primary"
+                  className="rounded-lg bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-700 flex items-center justify-center gap-2"
                   style={{ flex: 1, height: 42, fontSize: '0.8125rem', background: shortlistedMap.nuwan ? '#10b981' : undefined }}
                   onClick={() => handleToggleShortlist('nuwan')}
                 >
@@ -1069,7 +1067,7 @@ const CandidateListPage = () => {
 
               <button
                 type="button"
-                className="btn-primary"
+                className="rounded-lg bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-700 flex items-center justify-center gap-2"
                 style={{ marginTop: 'auto', height: 44 }}
                 onClick={handleRegenerate}
                 disabled={isRegenerating}
