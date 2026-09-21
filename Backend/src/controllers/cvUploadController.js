@@ -4,6 +4,7 @@ const mongoose = require('mongoose');
 const Candidate = require('../models/Candidate');
 const ApiError = require('../utils/ApiError');
 const asyncHandler = require('../utils/asyncHandler');
+const { enqueueCandidate } = require('../queues/cvProcessingQueue');
 
 /*
   POST /api/jobs/:jobId/cvs
@@ -56,8 +57,30 @@ const uploadCvs = asyncHandler(async (req, res) => {
     status: 'Pending',
   }));
 
+  /*
+    Create the Candidate records in MongoDB.
+    Every uploaded CV starts with Pending status.
+  */
   const candidates = await Candidate.insertMany(
     candidateDocuments
+  );
+
+  /*
+    Add each newly created candidate to the BullMQ queue.
+
+    The candidate remains Pending while waiting.
+    Later the worker will update the status:
+
+    Pending -> Processing -> Complete / Failed
+  */
+  await Promise.all(
+    candidates.map((candidate) =>
+      enqueueCandidate({
+        candidateId: candidate._id,
+        jobId: candidate.jobId,
+        filePath: candidate.cvUrl,
+      })
+    )
   );
 
   const responseData = candidates.map((candidate) => ({
