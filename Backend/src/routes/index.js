@@ -1,16 +1,71 @@
 const express = require('express');
+
 const authRoutes = require('./authRoutes');
 const jobRoutes = require('./jobRoutes');
 const candidateRoutes = require('./candidateRoutes');
 const adminRoutes = require('./adminRoutes');
+const dashboardRoutes = require('./dashboardRoutes');
 
 const router = express.Router();
 
-router.get('/health', (req, res) => res.json({ success: true, message: 'API is running' }));
+/*
+  Health check
+*/
+router.get(
+  '/health',
+  (req, res) =>
+    res.json({
+      success: true,
+      message: 'API is running',
+    })
+);
 
-router.use('/auth', authRoutes);
-router.use('/jobs', jobRoutes); // also handles nested /jobs/:jobId/cvs, /candidates, /ranking, /export/*
-router.use('/candidates', candidateRoutes); // for direct /candidates/:id access
-router.use('/admin', adminRoutes);
+/*
+  Authentication routes
+*/
+router.use(
+  '/auth',
+  authRoutes
+);
+
+/*
+  Job routes
+*/
+router.use(
+  '/jobs',
+  jobRoutes
+);
+
+/*
+  Candidate routes
+*/
+router.use(
+  '/candidates',
+  candidateRoutes
+);
+
+/*
+  Dashboard routes
+
+  Available endpoints:
+
+  GET /api/dashboard
+  GET /api/dashboard/statistics
+  GET /api/dashboard/candidate-statistics
+  GET /api/dashboard/processing-status
+  GET /api/dashboard/top-candidates
+*/
+router.use(
+  '/dashboard',
+  dashboardRoutes
+);
+
+/*
+  Admin routes
+*/
+router.use(
+  '/admin',
+  adminRoutes
+);
 
 module.exports = router;
