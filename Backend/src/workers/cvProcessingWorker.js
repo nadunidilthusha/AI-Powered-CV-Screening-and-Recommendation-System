@@ -7,6 +7,9 @@ const Candidate = require('../models/Candidate');
 const Job = require('../models/Job');
 const { screenCandidate } = require('../services/aiService');
 
+/*
+  Redis connection used by the BullMQ worker.
+*/
 const connection = {
   host: env.redis.host,
   port: env.redis.port,
@@ -16,24 +19,41 @@ const connection = {
 let cvProcessingWorker = null;
 
 /*
-  Starts the BullMQ CV processing worker.
+  Start the CV processing worker.
 
   IMPORTANT:
-  Merely importing this file does NOT start the worker.
-  startCvProcessingWorker() must be called explicitly.
+  Importing this file does NOT automatically start the worker.
+
+  The worker starts only when:
+  startCvProcessingWorker()
+  is explicitly called.
 */
 const startCvProcessingWorker = async () => {
+  // Prevent multiple worker instances in the same process.
   if (cvProcessingWorker) {
     return cvProcessingWorker;
   }
 
-  // The worker normally runs as its own Node process,
-  // so it needs its own MongoDB connection.
+  /*
+    The worker can run as a separate Node.js process,
+    therefore it needs its own MongoDB connection.
+  */
   if (mongoose.connection.readyState === 0) {
     await mongoose.connect(env.mongoUri);
-    console.log('CV worker connected to MongoDB');
+
+    console.log(
+      'CV worker connected to MongoDB'
+    );
   }
 
+  /*
+    Listen to jobs from the same queue created in:
+
+    src/queues/cvProcessingQueue.js
+
+    Queue name:
+    cv-processing
+  */
   cvProcessingWorker = new Worker(
     'cv-processing',
 
@@ -48,7 +68,12 @@ const startCvProcessingWorker = async () => {
         `Processing candidate ${candidateId} for job ${jobId}`
       );
 
-      const candidate = await Candidate.findById(candidateId);
+      /*
+        Find the Candidate record that was created
+        when the CV was uploaded.
+      */
+      const candidate =
+        await Candidate.findById(candidateId);
 
       if (!candidate) {
         throw new Error(
@@ -56,116 +81,215 @@ const startCvProcessingWorker = async () => {
         );
       }
 
-      const job = await Job.findById(jobId);
-
-      if (!job) {
-        candidate.status = 'Failed';
-        candidate.processingError = 'Job not found';
-        await candidate.save();
-
-        throw new Error(
-          `Job not found: ${jobId}`
-        );
-      }
-
-      // Candidate has now been picked up by the worker.
-      candidate.status = 'Processing';
-      candidate.processingError = '';
-
-      await candidate.save();
-
       try {
         /*
-          cvUrl / filePath is stored as a relative path such as:
+          Find the job so that its description
+          and required skills can be passed
+          to the Python AI microservice.
+        */
+        const job = await Job.findById(jobId);
 
-          uploads/123456789-file.pdf
+        if (!job) {
+          throw new Error(
+            `Job not found: ${jobId}`
+          );
+        }
 
-          Convert it into an absolute path before sending it
-          to the AI service.
+        /*
+          The worker has now picked up the CV.
+
+          Status flow:
+
+          Pending
+             ↓
+          Processing
+        */
+        candidate.status = 'Processing';
+        candidate.processingError = '';
+
+        await candidate.save();
+
+        /*
+          Candidate CV paths are currently stored as
+          relative paths, for example:
+
+          uploads/123456789-cv.pdf
+
+          Convert that into an absolute filesystem path
+          before sending it to the AI service.
         */
         const absoluteFilePath = path.resolve(
           process.cwd(),
           filePath
         );
 
+        /*
+          The Python AI microservice expects:
+
+          POST /screen
+
+          {
+            filePath,
+            jobDescription,
+            requiredSkills
+          }
+        */
         const result = await screenCandidate({
           filePath: absoluteFilePath,
-          jobDescription: job.description,
-          requiredSkills: job.skills || [],
+
+          jobDescription:
+            job.description,
+
+          requiredSkills:
+            job.skills || [],
         });
 
         /*
-          This mapping follows the fields currently available
-          in Candidate.js.
+          Python ScreeningResponse:
 
-          When the AI microservice response contract is finalized,
-          this is the section we may need to adjust.
+          {
+            candidate: {
+              full_name,
+              email,
+              phone,
+              education: [],
+              experience: [],
+              skills: []
+            },
+
+            evaluation: {
+              matching_skills: [],
+              missing_skills: [],
+              experience_assessment,
+              match_percentage
+            },
+
+            decision: {
+              recommendation,
+              justification
+            }
+          }
         */
 
-        if (result.name !== undefined) {
-          candidate.name = result.name;
-        }
+        const extractedCandidate =
+          result.candidate || {};
 
-        if (result.email !== undefined) {
-          candidate.email = result.email;
-        }
+        const evaluation =
+          result.evaluation || {};
 
-        if (result.phone !== undefined) {
-          candidate.phone = result.phone;
-        }
+        const decision =
+          result.decision || {};
 
-        if (result.education !== undefined) {
-          candidate.education = result.education;
-        }
+        /*
+          Map extracted candidate information
+          from Python into Candidate.js.
+        */
+        candidate.name =
+          extractedCandidate.full_name ?? '';
 
-        if (result.experience !== undefined) {
-          candidate.experience = result.experience;
-        }
+        candidate.email =
+          extractedCandidate.email ?? '';
 
-        if (Array.isArray(result.technicalSkills)) {
-          candidate.technicalSkills =
-            result.technicalSkills;
-        }
+        candidate.phone =
+          extractedCandidate.phone ?? '';
 
+        /*
+          Python returns arrays for education
+          and experience.
+
+          Candidate.js currently stores these
+          as strings, so join them into readable
+          multi-line text.
+        */
+        candidate.education =
+          Array.isArray(
+            extractedCandidate.education
+          )
+            ? extractedCandidate.education.join(
+                '\n'
+              )
+            : '';
+
+        candidate.experience =
+          Array.isArray(
+            extractedCandidate.experience
+          )
+            ? extractedCandidate.experience.join(
+                '\n'
+              )
+            : '';
+
+        candidate.technicalSkills =
+          Array.isArray(
+            extractedCandidate.skills
+          )
+            ? extractedCandidate.skills
+            : [];
+
+        /*
+          Map Agent 02 + Agent 03 results
+          into aiEvaluation.
+        */
         candidate.aiEvaluation = {
           matchPercentage:
-            result.matchPercentage ?? 0,
+            evaluation.match_percentage ?? 0,
 
           recommendationStatus:
-            result.recommendationStatus ??
+            decision.recommendation ??
             'Pending',
 
           matchingSkills:
-            Array.isArray(result.matchingSkills)
-              ? result.matchingSkills
+            Array.isArray(
+              evaluation.matching_skills
+            )
+              ? evaluation.matching_skills
               : [],
 
           missingSkills:
-            Array.isArray(result.missingSkills)
-              ? result.missingSkills
+            Array.isArray(
+              evaluation.missing_skills
+            )
+              ? evaluation.missing_skills
               : [],
 
           justification:
-            result.justification ?? '',
+            decision.justification ?? '',
         };
 
+        /*
+          AI processing completed successfully.
+
+          Processing
+              ↓
+          Complete
+        */
         candidate.status = 'Complete';
         candidate.processingError = '';
 
         await candidate.save();
 
+        console.log(
+          `Candidate processing completed: ${candidateId}`
+        );
+
         return {
-          candidateId: String(candidate._id),
+          candidateId: String(
+            candidate._id
+          ),
+
           jobId: String(job._id),
+
           status: candidate.status,
         };
       } catch (error) {
         /*
-          Queue is configured for 3 attempts.
+          BullMQ queue configuration currently
+          allows 3 attempts.
 
-          Do not permanently mark the candidate Failed
-          on the first temporary failure because BullMQ
-          may retry it.
+          bullJob.attemptsMade represents attempts
+          that have already been made.
+
+          Add 1 because this is the current attempt.
         */
         const maxAttempts =
           bullJob.opts.attempts || 1;
@@ -177,25 +301,51 @@ const startCvProcessingWorker = async () => {
           currentAttempt >= maxAttempts;
 
         candidate.processingError =
-          error.message || 'CV processing failed';
+          error.message ||
+          'CV processing failed';
 
+        /*
+          Do not permanently mark the Candidate
+          as Failed on an early attempt because
+          BullMQ may retry it.
+
+          Only the final failed attempt becomes:
+
+          Failed
+        */
         if (isFinalAttempt) {
           candidate.status = 'Failed';
+        } else {
+          candidate.status = 'Processing';
         }
 
         await candidate.save();
 
-        // Throw again so BullMQ knows this attempt failed
-        // and can perform its retry/backoff behaviour.
+        /*
+          Re-throw the error so BullMQ knows
+          that this attempt failed.
+
+          BullMQ can then perform its configured
+          retry/backoff behaviour.
+        */
         throw error;
       }
     },
 
     {
       connection,
+
+      /*
+        Allow up to two CVs to be processed
+        at the same time.
+      */
       concurrency: 2,
     }
   );
+
+  /*
+    Worker event listeners.
+  */
 
   cvProcessingWorker.on(
     'completed',
@@ -227,20 +377,34 @@ const startCvProcessingWorker = async () => {
     }
   );
 
-  console.log('CV processing worker started');
+  console.log(
+    'CV processing worker started'
+  );
 
   return cvProcessingWorker;
 };
 
+/*
+  Gracefully stop the worker.
+
+  Useful when shutting down the worker process.
+*/
 const stopCvProcessingWorker = async () => {
   if (cvProcessingWorker) {
     await cvProcessingWorker.close();
+
     cvProcessingWorker = null;
   }
 
-  if (mongoose.connection.readyState !== 0) {
+  if (
+    mongoose.connection.readyState !== 0
+  ) {
     await mongoose.disconnect();
   }
+
+  console.log(
+    'CV processing worker stopped'
+  );
 };
 
 module.exports = {
