@@ -86,13 +86,13 @@ const CandidateDetailsPage = () => {
             <ChevronRight size={12} />
             <span style={{ color: '#0f172a', fontWeight: 600 }}>{candidateName}</span>
           </div>
-          <h1 className="page-h1">Candidate Evaluation Dossier</h1>
+          <h1 className="text-2xl font-bold tracking-tight text-slate-900">Candidate Evaluation Dossier</h1>
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <button
             type="button"
-            className="btn-secondary"
+            className="rounded-lg border border-slate-200 bg-white p-2 text-sm font-semibold text-slate-600 transition hover:bg-slate-50 flex items-center justify-center"
             style={{ width: 'auto', padding: '0 14px', height: 38, fontSize: '0.785rem' }}
             onClick={() => setShareModalOpen(true)}
           >
@@ -102,7 +102,7 @@ const CandidateDetailsPage = () => {
 
           <button
             type="button"
-            className="btn-secondary"
+            className="rounded-lg border border-slate-200 bg-white p-2 text-sm font-semibold text-slate-600 transition hover:bg-slate-50 flex items-center justify-center"
             style={{ width: 'auto', padding: '0 14px', height: 38, fontSize: '0.785rem' }}
             onClick={handleExportPdf}
           >
@@ -112,7 +112,7 @@ const CandidateDetailsPage = () => {
 
           <button
             type="button"
-            className="btn-primary"
+            className="rounded-lg bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-700 flex items-center justify-center gap-2"
             style={{ width: 'auto', padding: '0 16px', height: 38, fontSize: '0.785rem' }}
             onClick={() => {
               setIsShortlisted(!isShortlisted);
@@ -223,7 +223,7 @@ const CandidateDetailsPage = () => {
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 20 }}>
             <button
               type="button"
-              className="btn-primary"
+              className="rounded-lg bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-700 flex items-center justify-center gap-2"
               style={{ height: 42, fontSize: '0.8125rem' }}
               onClick={() => setInterviewModalOpen(true)}
             >
@@ -234,7 +234,7 @@ const CandidateDetailsPage = () => {
             <div style={{ display: 'flex', gap: 8 }}>
               <button
                 type="button"
-                className="btn-secondary"
+                className="rounded-lg border border-slate-200 bg-white p-2 text-sm font-semibold text-slate-600 transition hover:bg-slate-50 flex items-center justify-center"
                 style={{ flex: 1, height: 38, fontSize: '0.75rem' }}
                 onClick={() => showToast('Skill benchmark & Leetcode assessment dispatched to candidate email.', 'success')}
               >
@@ -243,7 +243,7 @@ const CandidateDetailsPage = () => {
               </button>
               <button
                 type="button"
-                className="btn-secondary"
+                className="rounded-lg border border-slate-200 bg-white p-2 text-sm font-semibold text-slate-600 transition hover:bg-slate-50 flex items-center justify-center"
                 style={{ flex: 1, height: 38, fontSize: '0.75rem', color: '#ef4444', borderColor: '#fecaca', background: '#fef2f2' }}
                 onClick={() => showToast('Candidate marked as declined. Polite rejection feedback generated.', 'info')}
               >
