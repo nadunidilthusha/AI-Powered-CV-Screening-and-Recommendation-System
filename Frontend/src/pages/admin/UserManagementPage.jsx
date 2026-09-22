@@ -1,13 +1,10 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Plus, X, ChevronDown, CheckCircle2, XCircle, Eye, EyeOff, ShieldCheck } from 'lucide-react';
-
-const initialUsers = [
-  { id: 1, name: 'Rashaan Weerasooriya', email: 'rashaan@company.com', role: 'System Administrator' },
-  { id: 2, name: 'Nadeesha R.', email: 'nadeesha@company.com', role: 'HR Manager' },
-];
+import adminService from '../../services/adminService';
 
 const UserManagementPage = () => {
-  const [users, setUsers] = useState(initialUsers);
+  const [users, setUsers] = useState([]);
+  const [loading, setLoading] = useState(true);
   
   // Modals state
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
@@ -16,36 +13,38 @@ const UserManagementPage = () => {
 
   // Add User Form States
   const [formData, setFormData] = useState({
-    name: '',
-    email: '',
-    role: 'Select a role...',
-    password: '',
-    confirmPassword: '',
-    sendEmail: true,
+    name: '', email: '', role: 'Select a role...', password: '', confirmPassword: '', sendEmail: true,
   });
 
-  // Password Visibility States
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-
-  // Edit Role State
   const [newAssignedRole, setNewAssignedRole] = useState('');
-
   const [errors, setErrors] = useState({});
+
+  // Fetch users from MongoDB
+  useEffect(() => {
+    const fetchUsers = async () => {
+      try {
+        const response = await adminService.getUsers();
+        // Safely extract the array to prevent mapping errors
+        const userData = response.data?.data || response.data || [];
+        setUsers(Array.isArray(userData) ? userData : []);
+      } catch (error) {
+        console.error('Failed to load users', error);
+        setUsers([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchUsers();
+  }, []);
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]: type === 'checkbox' ? checked : value,
-    }));
-
-    if (errors[name]) {
-      setErrors((prev) => ({ ...prev, [name]: '' }));
-    }
+    setFormData((prev) => ({ ...prev, [name]: type === 'checkbox' ? checked : value }));
+    if (errors[name]) setErrors((prev) => ({ ...prev, [name]: '' }));
   };
 
-  // Password strength validation checkers
   const hasMinLength = formData.password.length >= 8;
   const hasUpperCase = /[A-Z]/.test(formData.password);
   const hasLowerCase = /[a-z]/.test(formData.password);
@@ -55,29 +54,13 @@ const UserManagementPage = () => {
   const validateForm = () => {
     let newErrors = {};
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
     if (!formData.name.trim()) newErrors.name = 'Full name is required.';
-    
-    if (!formData.email.trim()) {
-      newErrors.email = 'Corporate email is required.';
-    } else if (!emailRegex.test(formData.email)) {
-      newErrors.email = 'Please enter a valid email address.';
-    }
-
-    if (!formData.role || formData.role === 'Select a role...') {
-      newErrors.role = 'Please select a system role.';
-    }
-
-    if (!formData.password) {
-      newErrors.password = 'Password is required.';
-    } else if (!isPasswordStrong) {
-      newErrors.password = 'Password does not meet security requirements.';
-    }
-
-    if (formData.password !== formData.confirmPassword) {
-      newErrors.confirmPassword = 'Passwords do not match.';
-    }
-
+    if (!formData.email.trim()) newErrors.email = 'Corporate email is required.';
+    else if (!emailRegex.test(formData.email)) newErrors.email = 'Please enter a valid email address.';
+    if (!formData.role || formData.role === 'Select a role...') newErrors.role = 'Please select a system role.';
+    if (!formData.password) newErrors.password = 'Password is required.';
+    else if (!isPasswordStrong) newErrors.password = 'Password does not meet security requirements.';
+    if (formData.password !== formData.confirmPassword) newErrors.confirmPassword = 'Passwords do not match.';
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -85,22 +68,11 @@ const UserManagementPage = () => {
   const handleCreateUser = (e) => {
     e.preventDefault();
     if (validateForm()) {
-      const newUser = {
-        id: users.length + 1,
-        name: formData.name,
-        email: formData.email,
-        role: formData.role,
-      };
+      // In a real application, you would POST this to the backend here
+      const newUser = { _id: Date.now().toString(), name: formData.name, email: formData.email, role: formData.role };
       setUsers([...users, newUser]);
       setIsAddModalOpen(false);
-      setFormData({
-        name: '',
-        email: '',
-        role: 'Select a role...',
-        password: '',
-        confirmPassword: '',
-        sendEmail: true,
-      });
+      setFormData({ name: '', email: '', role: 'Select a role...', password: '', confirmPassword: '', sendEmail: true });
       setErrors({});
     }
   };
@@ -114,8 +86,7 @@ const UserManagementPage = () => {
   const handleUpdateRole = (e) => {
     e.preventDefault();
     if (!activeEditUser) return;
-
-    setUsers(users.map((u) => (u.id === activeEditUser.id ? { ...u, role: newAssignedRole } : u)));
+    setUsers(users.map((u) => (u._id === activeEditUser._id ? { ...u, role: newAssignedRole } : u)));
     setIsEditModalOpen(false);
     setActiveEditUser(null);
   };
@@ -142,15 +113,21 @@ const UserManagementPage = () => {
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
-            {users.map((user) => (
-              <tr key={user.id} className="hover:bg-slate-50 transition-colors">
+            {loading ? (
+              <tr><td colSpan="3" className="px-6 py-4 text-center text-sm text-slate-500">Loading users...</td></tr>
+            ) : users.length === 0 ? (
+              <tr><td colSpan="3" className="px-6 py-4 text-center text-sm text-slate-500">No users found.</td></tr>
+            ) : users.map((user) => (
+              <tr key={user._id || user.id} className="hover:bg-slate-50 transition-colors">
                 <td className="px-6 py-4">
                   <p className="text-sm font-semibold text-slate-900">{user.name}</p>
                   <p className="text-xs text-slate-500">{user.email}</p>
                 </td>
                 <td className="px-6 py-4">
                   <span className={`inline-flex px-3 py-1 text-xs font-semibold rounded-md ${
-                    user.role === 'System Administrator' ? 'bg-purple-50 text-purple-700 border border-purple-100' : 'bg-blue-50 text-blue-700 border border-blue-100'
+                    user.role === 'admin' || user.role === 'System Administrator' 
+                      ? 'bg-purple-50 text-purple-700 border border-purple-100' 
+                      : 'bg-blue-50 text-blue-700 border border-blue-100'
                   }`}>
                     {user.role}
                   </span>
@@ -169,7 +146,7 @@ const UserManagementPage = () => {
         </table>
       </div>
 
-      {/* ADD NEW USER MODAL */}
+      {/* ADD NEW USER MODAL (Restored) */}
       {isAddModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm">
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg overflow-hidden max-h-[90vh] flex flex-col">
@@ -235,11 +212,10 @@ const UserManagementPage = () => {
                   {errors.role && <p className="text-xs text-red-500 mt-1">{errors.role}</p>}
                 </div>
 
-                {/* Password Setup with Strength Checklist & Eye Toggles */}
+                {/* Password Setup */}
                 <div>
                   <label className="block text-sm font-semibold text-slate-900 mb-1.5">Password Setup</label>
                   <div className="grid grid-cols-2 gap-4">
-                    {/* Password Field */}
                     <div className="relative">
                       <input 
                         type={showPassword ? 'text' : 'password'}
@@ -259,8 +235,6 @@ const UserManagementPage = () => {
                         {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                       </button>
                     </div>
-
-                    {/* Confirm Password Field */}
                     <div className="relative">
                       <input 
                         type={showConfirmPassword ? 'text' : 'password'}
@@ -298,7 +272,6 @@ const UserManagementPage = () => {
                     </div>
                   )}
 
-                  {/* Real-time Match Indicator */}
                   {formData.confirmPassword && (
                     <div className="mt-1.5 flex items-center text-xs font-medium">
                       {formData.password === formData.confirmPassword ? (
@@ -347,7 +320,7 @@ const UserManagementPage = () => {
         </div>
       )}
 
-      {/* EDIT ROLE MODAL */}
+      {/* EDIT ROLE MODAL (Restored) */}
       {isEditModalOpen && activeEditUser && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm">
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden">
@@ -373,6 +346,7 @@ const UserManagementPage = () => {
                     >
                       <option value="HR Manager">HR Manager</option>
                       <option value="System Administrator">System Administrator</option>
+                      <option value="admin">admin</option>
                     </select>
                     <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none text-slate-400">
                       <ChevronDown size={18} />
