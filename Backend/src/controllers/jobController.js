@@ -1,94 +1,204 @@
-const asyncHandler = require('../utils/asyncHandler');
-const ApiError = require('../utils/ApiError');
-const Job = require('../models/Job');
+const mongoose = require('mongoose');
 
-// @route  GET /api/jobs
-// @access Private
-// Supports the frontend's job list filters: status tabs, department
-// dropdown, and the search box (matches on title, case-insensitive).
+const Job = require('../models/Job');
+const Candidate = require('../models/Candidate');
+const ApiError = require('../utils/ApiError');
+const asyncHandler = require('../utils/asyncHandler');
+
+const allowedFields = [
+  'title',
+  'department',
+  'type',
+  'location',
+  'level',
+  'salaryMin',
+  'salaryMax',
+  'description',
+  'status',
+  'skills',
+];
+
+const buildJobData = (body) => {
+  const data = {};
+
+  allowedFields.forEach((field) => {
+    if (body[field] !== undefined) {
+      data[field] = body[field];
+    }
+  });
+
+  // Convert empty salary inputs from the frontend to null.
+  if (data.salaryMin === '') {
+    data.salaryMin = null;
+  }
+
+  if (data.salaryMax === '') {
+    data.salaryMax = null;
+  }
+
+  return data;
+};
+
+/*
+  GET /api/jobs
+
+  Optional query parameters:
+  ?status=Active
+  ?department=Engineering
+  ?search=software
+*/
 const getJobs = asyncHandler(async (req, res) => {
   const { status, department, search } = req.query;
 
   const filter = {};
-  if (status) filter.status = status;
-  if (department) filter.department = department;
-  if (search) filter.title = { $regex: search, $options: 'i' };
 
-  const jobs = await Job.find(filter).sort({ createdAt: -1 });
-  res.success(jobs, 'Jobs fetched successfully');
-});
-
-// @route  GET /api/jobs/:id
-// @access Private
-const getJobById = asyncHandler(async (req, res) => {
-  const job = await Job.findById(req.params.id);
-  if (!job) {
-    throw new ApiError(404, 'Job posting not found');
+  if (status) {
+    filter.status = status;
   }
-  res.success(job, 'Job fetched successfully');
+
+  if (department) {
+    filter.department = department;
+  }
+
+  if (search) {
+    filter.$or = [
+      {
+        title: {
+          $regex: search,
+          $options: 'i',
+        },
+      },
+      {
+        description: {
+          $regex: search,
+          $options: 'i',
+        },
+      },
+      {
+        location: {
+          $regex: search,
+          $options: 'i',
+        },
+      },
+    ];
+  }
+
+  const jobs = await Job.find(filter)
+    .sort({ createdAt: -1 })
+    .lean();
+
+  res.success(
+    jobs,
+    'Jobs fetched successfully'
+  );
 });
 
-// @route  POST /api/jobs
-// @access Private (hr_manager, admin)
+/*
+  GET /api/jobs/:id
+*/
+const getJobById = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+
+  if (!mongoose.Types.ObjectId.isValid(id)) {
+    throw new ApiError(400, 'Invalid job ID');
+  }
+
+  const job = await Job.findById(id).lean();
+
+  if (!job) {
+    throw new ApiError(404, 'Job not found');
+  }
+
+  res.success(
+    job,
+    'Job fetched successfully'
+  );
+});
+
+/*
+  POST /api/jobs
+*/
 const createJob = asyncHandler(async (req, res) => {
-  const { title, department, type, location, level, salaryMin, salaryMax, description, status, skills } =
-    req.body;
+  const jobData = buildJobData(req.body);
 
   const job = await Job.create({
-    title,
-    department,
-    type,
-    location,
-    level,
-    salaryMin: salaryMin === '' ? undefined : salaryMin,
-    salaryMax: salaryMax === '' ? undefined : salaryMax,
-    description,
-    status,
-    skills,
+    ...jobData,
     createdBy: req.user._id,
   });
 
-  res.success(job, 'Job posting created successfully', 201);
+  res.success(
+    job,
+    'Job created successfully',
+    201
+  );
 });
 
-// @route  PUT /api/jobs/:id
-// @access Private (hr_manager, admin)
+/*
+  PUT /api/jobs/:id
+*/
 const updateJob = asyncHandler(async (req, res) => {
-  const { title, department, type, location, level, salaryMin, salaryMax, description, status, skills } =
-    req.body;
+  const { id } = req.params;
+
+  if (!mongoose.Types.ObjectId.isValid(id)) {
+    throw new ApiError(400, 'Invalid job ID');
+  }
+
+  const jobData = buildJobData(req.body);
 
   const job = await Job.findByIdAndUpdate(
-    req.params.id,
+    id,
+    jobData,
     {
-      title,
-      department,
-      type,
-      location,
-      level,
-      salaryMin: salaryMin === '' ? undefined : salaryMin,
-      salaryMax: salaryMax === '' ? undefined : salaryMax,
-      description,
-      status,
-      skills,
-    },
-    { new: true, runValidators: true, context: 'query' }
+      new: true,
+      runValidators: true,
+      context: 'query',
+    }
   );
 
   if (!job) {
-    throw new ApiError(404, 'Job posting not found');
+    throw new ApiError(404, 'Job not found');
   }
 
-  res.success(job, 'Job posting updated successfully');
+  res.success(
+    job,
+    'Job updated successfully'
+  );
 });
 
-// @route  DELETE /api/jobs/:id
-// @access Private (hr_manager, admin)
+/*
+  DELETE /api/jobs/:id
+
+  Candidates belonging to the deleted job are also removed.
+*/
 const deleteJob = asyncHandler(async (req, res) => {
-  const job = await Job.findByIdAndDelete(req.params.id);
-  if (!job) {
-    throw new ApiError(404, 'Job posting not found');
+  const { id } = req.params;
+
+  if (!mongoose.Types.ObjectId.isValid(id)) {
+    throw new ApiError(400, 'Invalid job ID');
   }
-  res.success(null, 'Job posting deleted successfully');
+
+  const job = await Job.findById(id);
+
+  if (!job) {
+    throw new ApiError(404, 'Job not found');
+  }
+
+  await Candidate.deleteMany({
+    jobId: id,
+  });
+
+  await job.deleteOne();
+
+  res.success(
+    null,
+    'Job deleted successfully'
+  );
 });
 
-module.exports = { getJobs, getJobById, createJob, updateJob, deleteJob };
+module.exports = {
+  getJobs,
+  getJobById,
+  createJob,
+  updateJob,
+  deleteJob,
+};
