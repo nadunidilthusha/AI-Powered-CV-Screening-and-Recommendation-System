@@ -4,12 +4,19 @@ const jobSchema = new mongoose.Schema(
   {
     title: {
       type: String,
-      required: true,
+      required: [true, 'Job title is required'],
       trim: true,
     },
 
     department: {
       type: String,
+      enum: [
+        'Engineering',
+        'Design',
+        'Product',
+        'Marketing',
+        'Operations',
+      ],
       default: 'Engineering',
       trim: true,
     },
@@ -27,7 +34,7 @@ const jobSchema = new mongoose.Schema(
 
     location: {
       type: String,
-      required: true,
+      required: [true, 'Location is required'],
       trim: true,
     },
 
@@ -45,16 +52,18 @@ const jobSchema = new mongoose.Schema(
     salaryMin: {
       type: Number,
       default: null,
+      min: [0, 'Minimum salary cannot be negative'],
     },
 
     salaryMax: {
       type: Number,
       default: null,
+      min: [0, 'Maximum salary cannot be negative'],
     },
 
     description: {
       type: String,
-      required: true,
+      required: [true, 'Job description is required'],
       trim: true,
     },
 
@@ -75,10 +84,21 @@ const jobSchema = new mongoose.Schema(
         trim: true,
       },
     ],
+
+    createdBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+      required: true,
+    },
   },
   {
     timestamps: true,
   }
 );
+
+jobSchema.index({
+  title: 'text',
+  department: 'text',
+});
 
 module.exports = mongoose.model('Job', jobSchema);

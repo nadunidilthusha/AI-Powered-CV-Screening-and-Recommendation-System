@@ -1,5 +1,33 @@
 const { body } = require('express-validator');
 
+const VALID_DEPARTMENTS = [
+  'Engineering',
+  'Design',
+  'Product',
+  'Marketing',
+  'Operations',
+];
+
+const VALID_TYPES = [
+  'Full-time',
+  'Part-time',
+  'Contract',
+  'Internship',
+];
+
+const VALID_LEVELS = [
+  'Entry level',
+  'Mid level',
+  'Senior level',
+  'Lead / Principal',
+];
+
+const VALID_STATUSES = [
+  'Draft',
+  'Active',
+  'Closed',
+];
+
 const jobValidator = [
   body('title')
     .trim()
@@ -18,44 +46,55 @@ const jobValidator = [
 
   body('department')
     .optional()
-    .isIn([
-      'Engineering',
-      'Design',
-      'Product',
-      'Marketing',
-      'Operations',
-    ])
-    .withMessage('Invalid department'),
+    .isIn(VALID_DEPARTMENTS)
+    .withMessage(
+      `Department must be one of: ${VALID_DEPARTMENTS.join(', ')}`
+    ),
 
   body('type')
     .optional()
-    .isIn([
-      'Full-time',
-      'Part-time',
-      'Contract',
-      'Internship',
-    ])
-    .withMessage('Invalid employment type'),
+    .isIn(VALID_TYPES)
+    .withMessage(
+      `Employment type must be one of: ${VALID_TYPES.join(', ')}`
+    ),
 
   body('level')
     .optional()
-    .isIn([
-      'Entry level',
-      'Mid level',
-      'Senior level',
-      'Lead / Principal',
-    ])
-    .withMessage('Invalid experience level'),
+    .isIn(VALID_LEVELS)
+    .withMessage(
+      `Experience level must be one of: ${VALID_LEVELS.join(', ')}`
+    ),
 
   body('salaryMin')
-    .optional({ nullable: true, checkFalsy: true })
+    .optional({
+      nullable: true,
+      checkFalsy: true,
+    })
     .isFloat({ min: 0 })
     .withMessage('Minimum salary must be a positive number'),
 
   body('salaryMax')
-    .optional({ nullable: true, checkFalsy: true })
+    .optional({
+      nullable: true,
+      checkFalsy: true,
+    })
     .isFloat({ min: 0 })
-    .withMessage('Maximum salary must be a positive number'),
+    .withMessage('Maximum salary must be a positive number')
+    .custom((value, { req }) => {
+      const min = req.body.salaryMin;
+
+      if (
+        min != null &&
+        min !== '' &&
+        Number(value) < Number(min)
+      ) {
+        throw new Error(
+          'Maximum salary must be greater than or equal to minimum salary'
+        );
+      }
+
+      return true;
+    }),
 
   body('skills')
     .optional()
@@ -71,12 +110,12 @@ const jobValidator = [
 
   body('status')
     .optional()
-    .isIn([
-      'Draft',
-      'Active',
-      'Closed',
-    ])
-    .withMessage('Invalid job status'),
+    .isIn(VALID_STATUSES)
+    .withMessage(
+      `Status must be one of: ${VALID_STATUSES.join(', ')}`
+    ),
 ];
 
-module.exports = { jobValidator };
+module.exports = {
+  jobValidator,
+};

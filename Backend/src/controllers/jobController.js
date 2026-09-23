@@ -121,7 +121,10 @@ const getJobById = asyncHandler(async (req, res) => {
 const createJob = asyncHandler(async (req, res) => {
   const jobData = buildJobData(req.body);
 
-  const job = await Job.create(jobData);
+  const job = await Job.create({
+    ...jobData,
+    createdBy: req.user._id,
+  });
 
   res.success(
     job,
@@ -148,6 +151,7 @@ const updateJob = asyncHandler(async (req, res) => {
     {
       new: true,
       runValidators: true,
+      context: 'query',
     }
   );
 
