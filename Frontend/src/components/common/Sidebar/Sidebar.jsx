@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import {
-  LayoutGrid,
+  LayoutDashboard,
   Briefcase,
   Upload,
   Users,
@@ -18,7 +18,7 @@ import { ROUTES } from '../../../routes/routePaths';
 import LogoutModal from '../../modals/LogoutModal';
 
 const workspaceLinks = [
-  { to: '/', label: 'Dashboard', icon: LayoutGrid, end: true },
+  { to: '/', label: 'Dashboard', icon: LayoutDashboard, end: true },
   { to: '/jobs', label: 'Job postings', icon: Briefcase },
   { to: '/cv-upload', label: 'Upload CVs', icon: Upload },
   { to: '/candidates', label: 'Candidates', icon: Users },
