@@ -1,4 +1,36 @@
+import { useState, useEffect } from 'react';
+import adminService from "../../services/adminService";
+
 const DatabaseStatusPage = () => {
+  const [dbData, setDbData] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+    const fetchDbStatus = async () => {
+      try {
+        const response = await adminService.getDatabaseStatus();
+        
+        // 1. Log the exact response to see its structure
+        console.log("RAW API RESPONSE:", response);
+        
+        // 2. Cover all bases depending on how your api.js interceptor is built
+        const actualData = response?.data?.data || response?.data || response;
+        
+        console.log("EXTRACTED DATA:", actualData);
+        setDbData(actualData);
+        
+      } catch (error) {
+        // 3. Log the exact error if the request is being blocked
+        console.error('DB Status API Failed:', error.response?.data || error.message);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchDbStatus();
+  }, []);
+
+  const isConnected = dbData?.connectionState === 'Connected';
+
   return (
     <div className="max-w-4xl mx-auto">
       <h1 className="text-2xl font-bold text-slate-900 mb-6">Database Status</h1>
@@ -7,10 +39,15 @@ const DatabaseStatusPage = () => {
         <div className="flex justify-between items-start mb-8 border-b border-slate-100 pb-6">
           <div>
             <h2 className="text-xl font-bold text-slate-900">MongoDB Atlas Cluster</h2>
-            <p className="text-sm text-slate-500 mt-1">M0 Sandbox Environment Region: ap-south-1</p>
+            <p className="text-sm text-slate-500 mt-1">
+              {loading ? 'Loading connection info...' : `Host: ${dbData?.host} | DB: ${dbData?.databaseName}`}
+            </p>
           </div>
-          <span className="flex items-center gap-1.5 px-3 py-1 text-xs font-semibold text-emerald-700 bg-emerald-50 border border-emerald-100 rounded-full">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> Connected
+          <span className={`flex items-center gap-1.5 px-3 py-1 text-xs font-semibold border rounded-full ${
+            isConnected ? 'text-emerald-700 bg-emerald-50 border-emerald-100' : 'text-red-700 bg-red-50 border-red-100'
+          }`}>
+            <span className={`w-1.5 h-1.5 rounded-full ${isConnected ? 'bg-emerald-500' : 'bg-red-500'}`}></span> 
+            {dbData?.connectionState || (loading ? 'Checking...' : 'Disconnected')}
           </span>
         </div>
 

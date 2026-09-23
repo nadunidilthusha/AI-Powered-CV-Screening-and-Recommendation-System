@@ -1,8 +1,26 @@
 import { useState } from 'react';
+import adminService from "../../services/adminService";
 
 const ApiConfigurationPage = () => {
-  // State to handle the TC_AD_013 Reveal toggle fix
   const [showOpenAiKey, setShowOpenAiKey] = useState(false);
+  const [geminiKey, setGeminiKey] = useState('');
+  const [isSaving, setIsSaving] = useState(false);
+
+  const handleSaveConfig = async () => {
+    if (!geminiKey) return alert("Please enter an API key first.");
+    
+    setIsSaving(true);
+    try {
+      await adminService.updateApiConfig({ apiKey: geminiKey });
+      alert('API Configuration updated successfully!');
+      setGeminiKey(''); // Clear the field after secure save
+    } catch (error) {
+      alert('Failed to update API configuration.');
+      console.error(error);
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
   return (
     <div className="max-w-4xl mx-auto">
@@ -22,7 +40,6 @@ const ApiConfigurationPage = () => {
               </span>
             </div>
             <div className="flex gap-3">
-              {/* TC_AD_013 FIX: Toggles type between text and password */}
               <input 
                 type={showOpenAiKey ? "text" : "password"} 
                 defaultValue="sk-proj-xxxxxxxxxxxxxxxxxxxxxxxxxxxx" 
@@ -49,11 +66,17 @@ const ApiConfigurationPage = () => {
             <div className="flex gap-3">
               <input 
                 type="text" 
+                value={geminiKey}
+                onChange={(e) => setGeminiKey(e.target.value)}
                 placeholder="Enter Gemini key (AIzaSy...)" 
                 className="flex-1 px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" 
               />
-              <button className="px-4 py-2 text-sm font-semibold text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors">
-                Save & Test
+              <button 
+                onClick={handleSaveConfig}
+                disabled={isSaving}
+                className="px-4 py-2 text-sm font-semibold text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-70"
+              >
+                {isSaving ? 'Saving...' : 'Save & Test'}
               </button>
             </div>
           </div>
