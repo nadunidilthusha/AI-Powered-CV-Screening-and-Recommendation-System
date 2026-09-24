@@ -1,14 +1,14 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  Search, ChevronDown, LayoutGrid, Briefcase, Upload, Users,
+  Search, ChevronDown, LayoutDashboard, Briefcase, Upload, Users,
   LineChart, Settings, UserCog, Wrench, Activity, Database,
 } from 'lucide-react';
 import { ROUTES } from '../../../routes/routePaths';
 
 
 const WORKSPACE_ITEMS = [
-  { label: 'Dashboard', to: ROUTES.DASHBOARD, icon: LayoutGrid },
+  { label: 'Dashboard', to: ROUTES.DASHBOARD, icon: LayoutDashboard },
   { label: 'Job postings', to: ROUTES.JOBS, icon: Briefcase },
   { label: 'Upload CVs', to: ROUTES.JOBS, icon: Upload }, // upload needs a job picked first, so send them to the job list
   { label: 'Candidates', to: ROUTES.CANDIDATES, icon: Users },
