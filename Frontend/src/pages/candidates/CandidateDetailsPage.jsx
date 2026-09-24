@@ -62,10 +62,6 @@ const CandidateDetailsPage = () => {
   const [shareModalOpen, setShareModalOpen] = useState(false);
   const [isShortlisted, setIsShortlisted] = useState(true);
 
-  if (loading || !candidate) {
-    return <div className="p-8 text-center text-slate-500">Loading candidate details...</div>;
-  }
-
   const [isRegeneratingQuestions, setIsRegeneratingQuestions] = useState(false);
   const [questions, setQuestions] = useState([
     {
@@ -87,6 +83,11 @@ const CandidateDetailsPage = () => {
       signal: 'Protocol buffers awareness, GraphQL/BFF integration patterns, and resilient timeout fallbacks.'
     }
   ]);
+
+  if (loading || !candidate) {
+    return <div className="p-8 text-center text-slate-500">Loading candidate details...</div>;
+  }
+
 
   const handleRegenerateQuestions = () => {
     setIsRegeneratingQuestions(true);
