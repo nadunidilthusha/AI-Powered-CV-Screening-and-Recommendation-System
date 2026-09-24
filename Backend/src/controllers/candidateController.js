@@ -1,26 +1,33 @@
 const asyncHandler = require('../utils/asyncHandler');
+const Candidate = require('../models/Candidate');
+const ApiError = require('../utils/ApiError');
 
 // @route  GET /api/jobs/:jobId/candidates
 // @access Private
-// TODO: fetch all candidates for a given job, typically sorted by
-// matchPercentage descending (see the Candidate model)
 const getCandidatesForJob = asyncHandler(async (req, res) => {
-  res.success(null, 'TODO: implement getCandidatesForJob');
+  const { jobId } = req.params;
+  const filter = (jobId && jobId !== 'all') ? { jobId } : {};
+  const candidates = await Candidate.find(filter).sort({ 'aiEvaluation.matchPercentage': -1 });
+  res.success(candidates, 'Candidates retrieved successfully');
 });
 
 // @route  GET /api/candidates/:id
 // @access Private
-// TODO: fetch a single candidate by id, 404 if not found
 const getCandidateById = asyncHandler(async (req, res) => {
-  res.success(null, 'TODO: implement getCandidateById');
+  const { id } = req.params;
+  const candidate = await Candidate.findById(id);
+  if (!candidate) throw new ApiError(404, 'Candidate not found');
+  res.success(candidate, 'Candidate details retrieved successfully');
 });
 
 // @route  GET /api/candidates/:id/recommendation
 // @access Private
-// TODO: return just the AI recommendation/justification fields for a
-// candidate (recommendation, matchingSkills, missingSkills, justification)
 const getAIRecommendation = asyncHandler(async (req, res) => {
-  res.success(null, 'TODO: implement getAIRecommendation');
+  const { id } = req.params;
+  const candidate = await Candidate.findById(id).select('aiEvaluation');
+  if (!candidate) throw new ApiError(404, 'Candidate not found');
+  res.success(candidate.aiEvaluation, 'AI recommendation retrieved successfully');
 });
 
 module.exports = { getCandidatesForJob, getCandidateById, getAIRecommendation };
+

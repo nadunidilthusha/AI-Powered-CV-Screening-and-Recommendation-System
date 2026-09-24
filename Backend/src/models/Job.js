@@ -34,7 +34,7 @@ const jobSchema = new mongoose.Schema(
 
     location: {
       type: String,
-      required: [true, 'Location is required'],
+      default: 'Remote',
       trim: true,
     },
 
@@ -63,7 +63,7 @@ const jobSchema = new mongoose.Schema(
 
     description: {
       type: String,
-      required: [true, 'Job description is required'],
+      default: '',
       trim: true,
     },
 
@@ -74,7 +74,7 @@ const jobSchema = new mongoose.Schema(
         'Active',
         'Closed',
       ],
-      default: 'Draft',
+      default: 'Active',
       index: true,
     },
 
@@ -88,7 +88,7 @@ const jobSchema = new mongoose.Schema(
     createdBy: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',
-      required: true,
+      required: false,
     },
   },
   {
