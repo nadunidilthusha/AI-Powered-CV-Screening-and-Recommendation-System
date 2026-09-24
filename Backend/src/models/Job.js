@@ -2,6 +2,25 @@ const mongoose = require('mongoose');
 
 const jobSchema = new mongoose.Schema(
   {
+<<<<<<< HEAD
+    title: { type: String, required: true, trim: true },
+    department: { type: String, trim: true },
+    location: { type: String, trim: true },
+    employmentType: {
+      type: String,
+      enum: ['Full-time', 'Part-time', 'Contract', 'Internship'],
+      default: 'Full-time',
+    },
+    description: { type: String, required: true },
+    requiredSkills: [{ type: String, trim: true }],
+    experienceLevel: { type: String, trim: true },
+    status: {
+      type: String,
+      enum: ['Open', 'Closed', 'Draft'],
+      default: 'Open',
+    },
+    createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+=======
     title: {
       type: String,
       required: [true, 'Job title is required'],
@@ -90,15 +109,20 @@ const jobSchema = new mongoose.Schema(
       ref: 'User',
       required: false,
     },
+>>>>>>> main
   },
   {
     timestamps: true,
   }
 );
 
+<<<<<<< HEAD
+module.exports = mongoose.model('Job', jobSchema);
+=======
 jobSchema.index({
   title: 'text',
   department: 'text',
 });
 
 module.exports = mongoose.model('Job', jobSchema);
+>>>>>>> main
