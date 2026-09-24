@@ -1,71 +1,70 @@
 const asyncHandler = require('../utils/asyncHandler');
-const fs = require('fs');
 const ApiError = require('../utils/ApiError');
+const mongoose = require('mongoose');
+const Job = require('../models/Job');
+const aiService = require('../services/aiService');
 
 // @route  POST /api/ai/extract
 // @access Private (HR/Admin)
+//
+// Diagnostic endpoint. Accepts a CV upload, optionally tagged with a jobId.
+// If jobId is provided, the real Job's description and requiredSkills are
+// used. Otherwise, the caller must supply jobDescription + requiredSkills
+// explicitly in the form fields.
 const extractCVText = asyncHandler(async (req, res) => {
-  if (!req.file) {
-    throw new ApiError(400, 'Please upload a PDF CV file');
+  if (!req.file) throw new ApiError(400, 'Please upload a PDF CV file');
+
+  let jobDescription = (req.body.jobDescription || '').trim();
+  let requiredSkills = [];
+
+  // Preferred path: load context from a real Job document
+  if (req.body.jobId) {
+    if (!mongoose.Types.ObjectId.isValid(req.body.jobId)) {
+      throw new ApiError(400, 'Invalid jobId');
+    }
+    const job = await Job.findById(req.body.jobId);
+    if (!job) throw new ApiError(404, 'Job not found');
+    jobDescription = job.description || '';
+    requiredSkills = job.requiredSkills || [];
+  } else if (req.body.requiredSkills) {
+    // Fallback: comma-separated string from the form
+    requiredSkills = String(req.body.requiredSkills)
+      .split(',')
+      .map((s) => s.trim())
+      .filter(Boolean);
   }
 
-  // 1. Read the saved PDF file from the disk
-  const dataBuffer = fs.readFileSync(req.file.path);
-
-  // 2. Extract raw text – handle both pdf-parse v1 and v2
-  let rawText = '';
+  if (!jobDescription || jobDescription.length < 20) {
+    throw new ApiError(
+      400,
+      'Provide a jobId, or a jobDescription of at least 20 characters'
+    );
+  }
 
   try {
-    const pdfModule = require('pdf-parse');
+    const result = await aiService.screenCandidate({
+      filePath: req.file.path,
+      jobDescription,
+      requiredSkills,
+    });
 
-    // --- v2 API (class-based) ---
-    if (pdfModule && typeof pdfModule.PDFParse === 'function') {
-      const { PDFParse } = pdfModule;
-      const uint8Array = new Uint8Array(
-        dataBuffer.buffer,
-        dataBuffer.byteOffset,
-        dataBuffer.byteLength
-      );
-      const parser = new PDFParse({ data: uint8Array });
-      const result = await parser.getText();
-      rawText = result.text || '';
-    }
-    // --- v1 API (function-based) ---
-    else if (typeof pdfModule === 'function') {
-      const pdfData = await pdfModule(dataBuffer);
-      rawText = pdfData.text || '';
-    }
-    // --- some builds export the function as .default ---
-    else if (pdfModule && typeof pdfModule.default === 'function') {
-      const pdfData = await pdfModule.default(dataBuffer);
-      rawText = pdfData.text || '';
-    }
-    else {
-      throw new Error('Unsupported pdf-parse export shape');
-    }
-  } catch (parseErr) {
-    console.error('PDF parsing failed:', parseErr);
-    throw new ApiError(500, 'Failed to extract text from the PDF file.');
+    res.success(
+      { extractedData: result, cvUrl: req.file.path },
+      'CV successfully processed by AI Pipeline'
+    );
+} catch (error) {
+  console.error('=== AI Microservice call failed ===');
+  console.error('Message:', error.message);
+  // The raw axios error is on error.cause (set by aiService.screenCandidate)
+  const raw = error.cause || error;
+  if (raw.response) {
+    console.error('Status:', raw.response.status);
+    console.error('Python response body:');
+    console.error(JSON.stringify(raw.response.data, null, 2));
   }
-
-  // 3. Mock AI Response (replace with real AI later)
-  const extractedData = {
-    name: 'Mock Candidate Name',
-    email: 'candidate@email.com',
-    phone: '0771234567',
-    education: 'BSc in Information Technology',
-    experience: 'Software Engineer Intern',
-    technicalSkills: ['JavaScript', 'Node.js', 'MongoDB', 'Express']
-  };
-
-  // 4. Final response
-  const structuredCandidateJSON = {
-    extractedData,
-    rawText: rawText,
-    cvUrl: req.file.path
-  };
-
-  res.success(structuredCandidateJSON, 'CV text extracted successfully (AI Mocked)');
+  const status = error.statusCode || 502;
+  throw new ApiError(status, error.message || 'AI screening failed');
+}
 });
 
 module.exports = { extractCVText };
