@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import useAuth from '../../hooks/useAuth';
 import { ROUTES } from '../../routes/routePaths';
@@ -10,7 +10,7 @@ import {
 } from 'lucide-react';
 import ScheduleInterviewModal from '../../components/modals/ScheduleInterviewModal';
 import CustomizeWeightsModal from '../../components/modals/CustomizeWeightsModal';
-import { mockCandidates } from '../../data/mockCandidates';
+import candidateService from '../../services/candidateService';
 import '../../styles/pages.css';
 
 const CandidateListPage = () => {
@@ -42,10 +42,44 @@ const CandidateListPage = () => {
   const [selectedJobRequisition, setSelectedJobRequisition] = useState('All Roles');
   const [sortOption, setSortOption] = useState('Highest AI Match');
   const [currentPage, setCurrentPage] = useState(1);
+  const [candidates, setCandidates] = useState([]);
+  const [loading, setLoading] = useState(true);
 
+  useEffect(() => {
+    const fetchCandidates = async () => {
+      try {
+        setLoading(true);
+        const res = await candidateService.getCandidates('all');
+        const formatted = res.data.data.map(c => ({
+          id: c._id,
+          name: c.name || c.fullName || 'Unknown',
+          title: c.technicalSkills?.[0] ? `${c.technicalSkills[0]} Specialist` : 'Candidate',
+          matchPct: c.aiEvaluation?.matchPercentage || 0,
+          recommendationStatus: c.aiEvaluation?.recommendationStatus || 'Recommended',
+          matchingSkills: c.aiEvaluation?.matchingSkills || [],
+          missingSkills: c.aiEvaluation?.missingSkills || [],
+          justification: c.aiEvaluation?.justification || 'Strong profile with high suitability for the position.',
+          avatar: c.cvUrl?.startsWith('http') ? c.cvUrl : 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
+          skills: c.technicalSkills || [],
+          experience: c.experience || '0 Yrs',
+          expEdu: `${c.experience || '0 Yrs'} • ${c.education || 'N/A'}`,
+          status: c.status || 'Under Review',
+          job: 'All Roles',
+          availability: 'Immediate',
+          email: c.email,
+          phone: c.phone
+        }));
+        setCandidates(formatted);
+      } catch (err) {
+        console.error('Failed to fetch candidates:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchCandidates();
+  }, []);
 
-
-  const filteredCandidates = mockCandidates.filter(c => {
+  const filteredCandidates = candidates.filter(c => {
     // TC_CL_001
     if (selectedJobRequisition && selectedJobRequisition !== 'All Roles' && c.job !== selectedJobRequisition) return false;
 
@@ -142,11 +176,11 @@ const CandidateListPage = () => {
   const [weights, setWeights] = useState({ experience: 40, skills: 40, culture: 20 });
   const [promptText, setPromptText] = useState('');
   const [isRegenerating, setIsRegenerating] = useState(false);
-  const [shortlistedMap, setShortlistedMap] = useState({
-    dishan: true,
-    amaya: true,
-    nuwan: false
-  });
+  const [shortlistedMap, setShortlistedMap] = useState({});
+
+  const topRecommendations = [...candidates]
+    .sort((a, b) => b.matchPct - a.matchPct)
+    .slice(0, 3);
 
   const handleToggleShortlist = (id) => {
     setShortlistedMap(prev => {
@@ -711,259 +745,107 @@ const CandidateListPage = () => {
 
           {/* 3 Ranked Candidate Cards */}
           <div className="ranked-cards-grid">
-            <div className="ranked-card">
-              <div className="ranked-badge-top">
-                <span className="ai-choice-tag top-1">
-                  <Sparkles size={12} />
-                  <span>#1 AI TOP CHOICE</span>
-                </span>
-                <span className="fit-pct-pill">98% <span>FIT</span></span>
-              </div>
+            {topRecommendations.map((cand, idx) => {
+              const isShortlisted = !!shortlistedMap[cand.id];
+              const badgeTag = idx === 0 ? 'top-1' : idx === 1 ? 'strong' : 'potential';
+              const badgeText = idx === 0 ? '#1 AI TOP CHOICE' : idx === 1 ? '#2 STRONG TECHNICAL FIT' : '#3 HIGH POTENTIAL';
 
-              <div className="candidate-profile-row">
-                <div className="candidate-img-wrapper">
-                  <img
-                    src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80"
-                    alt="Dishan Perera"
-                    className="candidate-img"
-                  />
-                  <span className="verified-tick-badge"><Check size={10} /></span>
-                </div>
-                <div className="candidate-meta">
-                  <h4>Dishan Perera</h4>
-                  <p>Senior Frontend Specialist</p>
-                  <div className="candidate-details-pills">
-                    <span>💼 8 yrs exp</span>
-                    <span>•</span>
-                    <span>📍 Colombo (Hybrid)</span>
+              return (
+                <div className="ranked-card" key={cand.id}>
+                  <div className="ranked-badge-top">
+                    <span className={`ai-choice-tag ${badgeTag}`}>
+                      <Sparkles size={12} />
+                      <span>{badgeText}</span>
+                    </span>
+                    <span className="fit-pct-pill">{cand.matchPct}% <span>FIT</span></span>
+                  </div>
+
+                  <div className="candidate-profile-row">
+                    <div className="candidate-img-wrapper">
+                      <img
+                        src={cand.avatar}
+                        alt={cand.name}
+                        className="candidate-img"
+                      />
+                      <span className="verified-tick-badge"><Check size={10} /></span>
+                    </div>
+                    <div className="candidate-meta">
+                      <h4>{cand.name}</h4>
+                      <p>{cand.title}</p>
+                      <div className="candidate-details-pills">
+                        <span>💼 {cand.experience}</span>
+                        <span>•</span>
+                        <span>📍 Verified Profile</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="score-bars-list">
+                    <div className="score-bar-item">
+                      <div className="score-bar-labels">
+                        <span>Primary Technical Fit</span>
+                        <strong>{cand.matchPct}%</strong>
+                      </div>
+                      <div className="bar-track"><div className="bar-fill" style={{ width: `${cand.matchPct}%` }} /></div>
+                    </div>
+                    <div className="score-bar-item">
+                      <div className="score-bar-labels">
+                        <span>Experience & Seniority</span>
+                        <strong>{Math.min(100, Math.round(cand.matchPct * 0.96))}%</strong>
+                      </div>
+                      <div className="bar-track"><div className="bar-fill" style={{ width: `${Math.min(100, Math.round(cand.matchPct * 0.96))}%` }} /></div>
+                    </div>
+                    <div className="score-bar-item">
+                      <div className="score-bar-labels">
+                        <span>Ontology & Skills Fit</span>
+                        <strong>{Math.min(100, Math.round(cand.matchPct * 0.92))}%</strong>
+                      </div>
+                      <div className="bar-track"><div className="bar-fill" style={{ width: `${Math.min(100, Math.round(cand.matchPct * 0.92))}%` }} /></div>
+                    </div>
+                  </div>
+
+                  <div className="why-ai-recommends-box">
+                    <div className="why-ai-title">
+                      <Sparkles size={12} />
+                      <span>Why AI Recommends</span>
+                    </div>
+                    <p className="why-ai-desc">
+                      {cand.justification}
+                    </p>
+                  </div>
+
+                  <div className="card-actions-row">
+                    <button
+                      type="button"
+                      className="rounded-lg bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-700 flex items-center justify-center gap-2"
+                      style={{ flex: 1, height: 42, fontSize: '0.8125rem' }}
+                      onClick={() => handleOpenInterview(cand.name)}
+                    >
+                      <Calendar size={14} />
+                      <span>Invite</span>
+                    </button>
+                    <button
+                      type="button"
+                      className="rounded-lg border border-slate-200 bg-white p-2 text-sm font-semibold text-slate-600 transition hover:bg-slate-50 flex items-center justify-center"
+                      style={{ flex: 1, height: 42, fontSize: '0.8125rem' }}
+                      onClick={() => navigate(`/candidates/${cand.id}`)}
+                    >
+                      <UserCheck size={14} />
+                      <span>Profile</span>
+                    </button>
+                    <button
+                      type="button"
+                      className="rounded-lg border border-slate-200 bg-white p-2 text-sm font-semibold text-slate-600 transition hover:bg-slate-50 flex items-center justify-center"
+                      style={{ width: 42, height: 42, padding: 0, color: isShortlisted ? '#10b981' : undefined }}
+                      onClick={() => handleToggleShortlist(cand.id)}
+                      title={isShortlisted ? 'Shortlisted' : 'Add to Shortlist'}
+                    >
+                      <CheckCircle2 size={16} />
+                    </button>
                   </div>
                 </div>
-              </div>
-
-              <div className="score-bars-list">
-                <div className="score-bar-item">
-                  <div className="score-bar-labels">
-                    <span>System Architecture</span>
-                    <strong>100%</strong>
-                  </div>
-                  <div className="bar-track"><div className="bar-fill" style={{ width: '100%' }} /></div>
-                </div>
-                <div className="score-bar-item">
-                  <div className="score-bar-labels">
-                    <span>TypeScript Strictness</span>
-                    <strong>95%</strong>
-                  </div>
-                  <div className="bar-track"><div className="bar-fill" style={{ width: '95%' }} /></div>
-                </div>
-                <div className="score-bar-item">
-                  <div className="score-bar-labels">
-                    <span>Culture & Leadership</span>
-                    <strong>92%</strong>
-                  </div>
-                  <div className="bar-track"><div className="bar-fill" style={{ width: '92%' }} /></div>
-                </div>
-              </div>
-
-              <div className="why-ai-recommends-box">
-                <div className="why-ai-title">
-                  <Sparkles size={12} />
-                  <span>Why AI Recommends</span>
-                </div>
-                <p className="why-ai-desc">
-                  Exceeds Next.js 14 App Router requirements by +2.4 years. Proven technical leadership in 4 enterprise migrations with sub-second page performance.
-                </p>
-              </div>
-
-              <div className="card-actions-row">
-                <button
-                  type="button"
-                  className="rounded-lg bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-700 flex items-center justify-center gap-2"
-                  style={{ flex: 1, height: 42, fontSize: '0.8125rem' }}
-                  onClick={() => handleOpenInterview('Dishan Perera')}
-                >
-                  <Calendar size={14} />
-                  <span>Invite to Interview</span>
-                </button>
-                <button
-                  type="button"
-                  className="rounded-lg border border-slate-200 bg-white p-2 text-sm font-semibold text-slate-600 transition hover:bg-slate-50 flex items-center justify-center"
-                  style={{ width: 42, height: 42, padding: 0 }}
-                  onClick={() => navigate('/candidates/1')}
-                  title="View Dossier"
-                >
-                  <Scale size={16} />
-                </button>
-              </div>
-            </div>
-
-            <div className="ranked-card">
-              <div className="ranked-badge-top">
-                <span className="ai-choice-tag strong">
-                  <Sparkles size={12} />
-                  <span>STRONG TECHNICAL FIT</span>
-                </span>
-                <span className="fit-pct-pill">94% <span>FIT</span></span>
-              </div>
-
-              <div className="candidate-profile-row">
-                <div className="candidate-img-wrapper">
-                  <img
-                    src="https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=100&auto=format&fit=crop&q=80"
-                    alt="Amaya Fernando"
-                    className="candidate-img"
-                  />
-                  <span className="verified-tick-badge"><Check size={10} /></span>
-                </div>
-                <div className="candidate-meta">
-                  <h4>Amaya Fernando</h4>
-                  <p>Design Systems & UI Architect</p>
-                  <div className="candidate-details-pills">
-                    <span>💼 5 yrs exp</span>
-                    <span>•</span>
-                    <span>📍 Remote (Global)</span>
-                  </div>
-                </div>
-              </div>
-
-              <div className="score-bars-list">
-                <div className="score-bar-item">
-                  <div className="score-bar-labels">
-                    <span>Design System Scalability</span>
-                    <strong>98%</strong>
-                  </div>
-                  <div className="bar-track"><div className="bar-fill" style={{ width: '98%' }} /></div>
-                </div>
-                <div className="score-bar-item">
-                  <div className="score-bar-labels">
-                    <span>React 18 Concurrent</span>
-                    <strong>93%</strong>
-                  </div>
-                  <div className="bar-track"><div className="bar-fill" style={{ width: '93%' }} /></div>
-                </div>
-                <div className="score-bar-item">
-                  <div className="score-bar-labels">
-                    <span>WCAG AAA Accessibility</span>
-                    <strong>96%</strong>
-                  </div>
-                  <div className="bar-track"><div className="bar-fill" style={{ width: '96%' }} /></div>
-                </div>
-              </div>
-
-              <div className="why-ai-recommends-box">
-                <div className="why-ai-title">
-                  <Sparkles size={12} />
-                  <span>Why AI Recommends</span>
-                </div>
-                <p className="why-ai-desc">
-                  Extensive enterprise UI component libraries experience. Authored design token workflows serving 40+ engineering teams seamlessly.
-                </p>
-              </div>
-
-              <div className="card-actions-row">
-                <button
-                  type="button"
-                  className="rounded-lg bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-700 flex items-center justify-center gap-2"
-                  style={{ flex: 1, height: 42, fontSize: '0.8125rem' }}
-                  onClick={() => handleOpenInterview('Amaya Fernando')}
-                >
-                  <Send size={14} />
-                  <span>Invite</span>
-                </button>
-                <button
-                  type="button"
-                  className="rounded-lg border border-slate-200 bg-white p-2 text-sm font-semibold text-slate-600 transition hover:bg-slate-50 flex items-center justify-center"
-                  style={{ flex: 1, height: 42, fontSize: '0.8125rem' }}
-                  onClick={() => navigate('/candidates/6')}
-                >
-                  <UserCheck size={14} />
-                  <span>Profile</span>
-                </button>
-              </div>
-            </div>
-
-            <div className="ranked-card">
-              <div className="ranked-badge-top">
-                <span className="ai-choice-tag potential">
-                  <Sparkles size={12} />
-                  <span>HIGH POTENTIAL</span>
-                </span>
-                <span className="fit-pct-pill">89% <span>FIT</span></span>
-              </div>
-
-              <div className="candidate-profile-row">
-                <div className="candidate-img-wrapper">
-                  <img
-                    src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&auto=format&fit=crop&q=80"
-                    alt="Nuwan Senanayake"
-                    className="candidate-img"
-                  />
-                  <span className="verified-tick-badge"><Check size={10} /></span>
-                </div>
-                <div className="candidate-meta">
-                  <h4>Nuwan Senanayake</h4>
-                  <p>Full Stack JS Engineer</p>
-                  <div className="candidate-details-pills">
-                    <span>💼 4 yrs exp</span>
-                    <span>•</span>
-                    <span>📍 Kandy (On-site)</span>
-                  </div>
-                </div>
-              </div>
-
-              <div className="score-bars-list">
-                <div className="score-bar-item">
-                  <div className="score-bar-labels">
-                    <span>Algorithmic Benchmark</span>
-                    <strong>96th %ile</strong>
-                  </div>
-                  <div className="bar-track"><div className="bar-fill" style={{ width: '96%' }} /></div>
-                </div>
-                <div className="score-bar-item">
-                  <div className="score-bar-labels">
-                    <span>React + NestJS Backend</span>
-                    <strong>91%</strong>
-                  </div>
-                  <div className="bar-track"><div className="bar-fill" style={{ width: '91%' }} /></div>
-                </div>
-                <div className="score-bar-item">
-                  <div className="score-bar-labels">
-                    <span>Build Pipeline & CI/CD</span>
-                    <strong>88%</strong>
-                  </div>
-                  <div className="bar-track"><div className="bar-fill" style={{ width: '88%' }} /></div>
-                </div>
-              </div>
-
-              <div className="why-ai-recommends-box">
-                <div className="why-ai-title">
-                  <Sparkles size={12} />
-                  <span>Why AI Recommends</span>
-                </div>
-                <p className="why-ai-desc">
-                  Strong full-stack capability with 96th percentile benchmark. Ideal versatility for rapid end-to-end prototyping and distributed team execution.
-                </p>
-              </div>
-
-              <div className="card-actions-row">
-                <button
-                  type="button"
-                  className="rounded-lg border border-slate-200 bg-white p-2 text-sm font-semibold text-slate-600 transition hover:bg-slate-50 flex items-center justify-center"
-                  style={{ flex: 1, height: 42, fontSize: '0.8125rem' }}
-                  onClick={() => navigate('/candidates/7')}
-                >
-                  <UserCheck size={14} />
-                  <span>View Profile</span>
-                </button>
-                <button
-                  type="button"
-                  className="rounded-lg bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-700 flex items-center justify-center gap-2"
-                  style={{ flex: 1, height: 42, fontSize: '0.8125rem', background: shortlistedMap.nuwan ? '#10b981' : undefined }}
-                  onClick={() => handleToggleShortlist('nuwan')}
-                >
-                  <span>{shortlistedMap.nuwan ? 'Shortlisted ✓' : 'Shortlist'}</span>
-                </button>
-              </div>
-            </div>
+              );
+            })}
           </div>
 
           {/* Discrepancy Matrix & Refinement */}
@@ -986,42 +868,26 @@ const CandidateListPage = () => {
                   <tr>
                     <th>Candidate</th>
                     <th>Semantic Match</th>
-                    <th>Code Repos</th>
-                    <th>Experience Fit</th>
-                    <th>Confidence</th>
+                    <th>Technical Skills</th>
+                    <th>Experience</th>
+                    <th>Recommendation</th>
                   </tr>
                 </thead>
                 <tbody>
-                  <tr>
-                    <td>
-                      <span className="matrix-dot-green" />
-                      <strong>Dishan Perera</strong>
-                    </td>
-                    <td>99.2% (App Router)</td>
-                    <td>Top 1.2% GitHub</td>
-                    <td style={{ color: '#059669', fontWeight: 700 }}>+2.4 yrs surplus</td>
-                    <td style={{ fontWeight: 700 }}>0.994</td>
-                  </tr>
-                  <tr>
-                    <td>
-                      <span className="matrix-dot-green" />
-                      <strong>Amaya Fernando</strong>
-                    </td>
-                    <td>95.8% (UI Patterns)</td>
-                    <td>Storybook Core Contributor</td>
-                    <td style={{ color: '#2563eb', fontWeight: 700 }}>Exact Match (5 yrs)</td>
-                    <td style={{ fontWeight: 700 }}>0.981</td>
-                  </tr>
-                  <tr>
-                    <td>
-                      <span className="matrix-dot-green" />
-                      <strong>Nuwan Senanayake</strong>
-                    </td>
-                    <td>91.4% (Fullstack JS)</td>
-                    <td>Leetcode 96th %ile</td>
-                    <td style={{ color: '#d97706', fontWeight: 700 }}>-1.0 yr delta (Offset)</td>
-                    <td style={{ fontWeight: 700 }}>0.963</td>
-                  </tr>
+                  {topRecommendations.map((cand) => (
+                    <tr key={`matrix-${cand.id}`}>
+                      <td>
+                        <span className="matrix-dot-green" />
+                        <strong>{cand.name}</strong>
+                      </td>
+                      <td>{cand.matchPct}%</td>
+                      <td>{cand.skills.slice(0, 3).join(', ') || 'Full Stack'}</td>
+                      <td style={{ color: '#059669', fontWeight: 700 }}>{cand.experience}</td>
+                      <td style={{ fontWeight: 700, color: cand.matchPct >= 90 ? '#10b981' : '#3b82f6' }}>
+                        {cand.recommendationStatus}
+                      </td>
+                    </tr>
+                  ))}
                 </tbody>
               </table>
 
