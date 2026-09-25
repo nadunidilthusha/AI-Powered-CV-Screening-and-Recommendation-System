@@ -16,7 +16,11 @@ class Settings(BaseSettings):
 
     ai_service_api_key: str  # required — no default, must be set in .env
 
-    llm_provider: str = "openai"  # "openai" | "gemini"
+    # NEW: MongoDB URI (same database as the Node backend uses).
+    # If empty or unreachable, the Gemini key falls back to .env.
+    mongo_uri: str = ""
+
+    llm_provider: str = "openai"
     openai_api_key: str = ""
     openai_model: str = "gpt-4o-mini"
     gemini_api_key: str = ""

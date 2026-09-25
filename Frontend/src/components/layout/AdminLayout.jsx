@@ -9,7 +9,7 @@ const AdminLayout = () => {
 
   return (
     <div className="flex min-h-screen">
-      <Sidebar role="admin" />
+      <Sidebar role={user?.role ?? 'admin'} />
       <div className="flex-1 flex flex-col">
         <Navbar
           pageTitle="Dashboard"

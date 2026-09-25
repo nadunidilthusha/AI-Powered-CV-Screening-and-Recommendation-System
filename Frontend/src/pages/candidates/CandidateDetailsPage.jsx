@@ -13,6 +13,18 @@ import ShareDossierModal from '../../components/modals/ShareDossierModal';
 import candidateService from '../../services/candidateService';
 import '../../styles/pages.css';
 
+// Defensive normaliser for legacy data whose skill fields may be strings.
+const toSkillArray = (value) => {
+  if (Array.isArray(value)) return value;
+  if (typeof value === 'string') {
+    return value
+      .split(/\s*,\s*|\s+/)
+      .map((s) => s.trim())
+      .filter(Boolean);
+  }
+  return [];
+};
+
 const CandidateDetailsPage = () => {
   const { id } = useParams();
   const { showToast } = useAuth();
@@ -24,11 +36,6 @@ const CandidateDetailsPage = () => {
     const fetchDetails = async () => {
       try {
         setLoading(true);
-        // Fallback to first if API fails or mock data id passed
-        const realId = id.length > 5 ? id : '66778899aabbccddeeff0011'; // A valid hex format to avoid cast errors, but ideally the UI should only pass valid mongo IDs.
-        // Let's just fetch all and find the candidate, because the id from the mock list might be just '1'. 
-        // Actually the backend getCandidateById requires a valid mongoose ObjectID. If it's a numeric ID, it will crash.
-        // But since we just replaced CandidateListPage, the IDs from the list page will be real mongo ObjectIDs!
         const res = await candidateService.getCandidateById(id);
         const c = res.data.data;
         const formatted = {
@@ -37,7 +44,11 @@ const CandidateDetailsPage = () => {
           title: 'Candidate',
           matchPct: c.aiEvaluation?.matchPercentage || 0,
           avatar: c.cvUrl || 'https://via.placeholder.com/150',
-          skills: c.technicalSkills || [],
+          skills: toSkillArray(c.technicalSkills),
+          matchingSkills: toSkillArray(c.aiEvaluation?.matchingSkills),
+          missingSkills: toSkillArray(c.aiEvaluation?.missingSkills),
+          justification: c.aiEvaluation?.justification || '',
+          recommendationStatus: c.aiEvaluation?.recommendationStatus || 'Pending',
           expEdu: `${c.experience || '0 Yrs'} • ${c.education || 'N/A'}`,
           status: c.status || 'Under Review',
           job: 'All Roles',
@@ -67,19 +78,19 @@ const CandidateDetailsPage = () => {
     {
       domain: 'ARCHITECTURE & SCALABILITY',
       focus: 'Next.js LCP optimization',
-      question: '“In your Virtusa role, you mentioned reducing LCP by 42%. Could you detail the specific trade-offs you navigated between server-side streaming and edge compute caching strategies?”',
+      question: '"In your Virtusa role, you mentioned reducing LCP by 42%. Could you detail the specific trade-offs you navigated between server-side streaming and edge compute caching strategies?"',
       signal: 'Granular understanding of React Server Components, Suspense boundaries, and CDN header tuning.'
     },
     {
       domain: 'TEAM GOVERNANCE & CI/CD',
       focus: 'Module Federation across 9 devs',
-      question: '“How did you resolve shared dependency version mismatches across micro-frontends without bloating vendor runtime bundles or breaking backwards compatibility?”',
+      question: '"How did you resolve shared dependency version mismatches across micro-frontends without bloating vendor runtime bundles or breaking backwards compatibility?"',
       signal: 'Shared singleton static handling, semantic version lockstep contracts, and regression pipelines.'
     },
     {
       domain: 'FULLSTACK ELASTICITY',
       focus: 'Backend bridging & concurrency',
-      question: '“Our core services utilize Go for low-latency RPC transactions. How do you approach designing API contracts to prevent frontend cascades when consuming asynchronous microservice topologies?”',
+      question: '"Our core services utilize Go for low-latency RPC transactions. How do you approach designing API contracts to prevent frontend cascades when consuming asynchronous microservice topologies?"',
       signal: 'Protocol buffers awareness, GraphQL/BFF integration patterns, and resilient timeout fallbacks.'
     }
   ]);
@@ -87,7 +98,6 @@ const CandidateDetailsPage = () => {
   if (loading || !candidate) {
     return <div className="p-8 text-center text-slate-500">Loading candidate details...</div>;
   }
-
 
   const handleRegenerateQuestions = () => {
     setIsRegeneratingQuestions(true);
@@ -181,7 +191,7 @@ const CandidateDetailsPage = () => {
           className={`dossier-tab-btn ${activeTab === 'work' ? 'active' : ''}`}
           onClick={() => setActiveTab('work')}
         >
-          Work Experience (4 Roles)
+          Work Experience
         </button>
         <button
           type="button"
@@ -250,7 +260,7 @@ const CandidateDetailsPage = () => {
               <FileText size={18} color="#4f46e5" />
               <div style={{ textAlign: 'left' }}>
                 <div style={{ fontSize: '0.775rem', fontWeight: 700, color: '#0f172a' }}>{candidateName.replace(/\s+/g, '_')}_Resume.pdf</div>
-                <div style={{ fontSize: '0.6875rem', color: '#64748b' }}>1.6 MB • OCR Verified</div>
+                <div style={{ fontSize: '0.6875rem', color: '#64748b' }}>OCR Verified</div>
               </div>
             </div>
             <button
@@ -301,11 +311,11 @@ const CandidateDetailsPage = () => {
               <span>AI RECRUITER BRIEFING</span>
             </div>
             <p style={{ fontSize: '0.75rem', color: '#475569', lineHeight: 1.5, fontStyle: 'italic', marginBottom: 10 }}>
-              “Dishan stands out as an elite front-end architect with proven Next.js production performance and cross-functional team leadership. He demonstrates rare maturity in design system governance and micro-frontend isolation patterns, making him an exceptionally low-friction hire for enterprise UI initiatives.”
+              {candidate.justification || 'AI evaluation in progress.'}
             </p>
             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.6875rem', color: '#64748b', borderTop: '1px solid #e2e8f0', paddingTop: 8 }}>
-              <span>Synthesized 14 mins ago</span>
-              <span>Confidence: <strong style={{ color: '#059669' }}>98.4%</strong></span>
+              <span>Recommendation: <strong>{candidate.recommendationStatus}</strong></span>
+              <span>Match: <strong style={{ color: '#059669' }}>{candidate.matchPct}%</strong></span>
             </div>
           </div>
         </div>
@@ -317,118 +327,39 @@ const CandidateDetailsPage = () => {
               <ShieldCheck size={18} color="#4f46e5" />
               <h3 style={{ fontSize: '1.05rem', fontWeight: 800, color: '#0f172a' }}>AI-Verified Core Strengths</h3>
             </div>
-            <span style={{ fontSize: '0.725rem', color: '#64748b' }}>Validated against JD #JD-9042</span>
+            <span style={{ fontSize: '0.725rem', color: '#64748b' }}>Match Score: {candidate.matchPct}%</span>
           </div>
 
-          {/* 3 Strengths Cards */}
-          <div className="strengths-grid">
-            <div className="strength-box">
-              <div style={{ width: 34, height: 34, borderRadius: 10, background: '#eef2ff', color: '#4f46e5', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 10 }}>
-                <Layers size={18} />
-              </div>
-              <h4 style={{ fontSize: '0.85rem', fontWeight: 800, color: '#0f172a', marginBottom: 4 }}>Next.js Performance Tuning</h4>
-              <p style={{ fontSize: '0.75rem', color: '#64748b', lineHeight: 1.45, marginBottom: 12 }}>
-                Engineered server-driven streaming & dynamic import partitions resulting in a verified 42% LCP reduction at scale on high-traffic fintech portals.
-              </p>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.7rem', borderTop: '1px solid #f1f5f9', paddingTop: 8 }}>
-                <span style={{ color: '#059669', fontWeight: 700 }}>✓ Production Verified</span>
-                <strong style={{ color: '#4f46e5' }}>100% Match</strong>
-              </div>
-            </div>
-
-            <div className="strength-box">
-              <div style={{ width: 34, height: 34, borderRadius: 10, background: '#eff6ff', color: '#3b82f6', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 10 }}>
-                <Sparkles size={18} />
-              </div>
-              <h4 style={{ fontSize: '0.85rem', fontWeight: 800, color: '#0f172a', marginBottom: 4 }}>Micro-frontends Leadership</h4>
-              <p style={{ fontSize: '0.75rem', color: '#64748b', lineHeight: 1.45, marginBottom: 12 }}>
-                Spearheaded Module Federation adoption across 9 front-end engineers. Reduced team merge collisions and enabled isolated CI/CD zero-downtime releases.
-              </p>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.7rem', borderTop: '1px solid #f1f5f9', paddingTop: 8 }}>
-                <span style={{ color: '#2563eb', fontWeight: 700 }}>✓ Cross-functional</span>
-                <strong style={{ color: '#4f46e5' }}>96% Match</strong>
-              </div>
-            </div>
-
-            <div className="strength-box">
-              <div style={{ width: 34, height: 34, borderRadius: 10, background: '#ecfdf5', color: '#10b981', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 10 }}>
-                <CheckCircle2 size={18} />
-              </div>
-              <h4 style={{ fontSize: '0.85rem', fontWeight: 800, color: '#0f172a', marginBottom: 4 }}>Design Systems Architecture</h4>
-              <p style={{ fontSize: '0.75rem', color: '#64748b', lineHeight: 1.45, marginBottom: 12 }}>
-                Created enterprise Tailwind + Radix UI token libraries conforming rigorously to WCAG 2.1 AAA compliance standards with zero-audit regressions.
-              </p>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.7rem', borderTop: '1px solid #f1f5f9', paddingTop: 8 }}>
-                <span style={{ color: '#059669', fontWeight: 700 }}>✓ High Accuracy</span>
-                <strong style={{ color: '#4f46e5' }}>85% Match</strong>
-              </div>
-            </div>
-          </div>
-
-          {/* Technical Competency */}
+          {/* Skills matching panel — uses normalised arrays */}
           <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: 18, padding: 20, marginBottom: 24 }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
-              <div>
-                <h4 style={{ fontSize: '0.95rem', fontWeight: 800, color: '#0f172a' }}>Technical Competency & Alignment</h4>
-                <p style={{ fontSize: '0.725rem', color: '#64748b' }}>Benchmark scores against 1,280 evaluated frontend engineering profiles</p>
-              </div>
-              <span style={{ fontSize: '0.725rem', color: '#64748b' }}>Target Baseline: <strong>80%</strong></span>
+            <h4 style={{ fontSize: '0.95rem', fontWeight: 800, color: '#0f172a', marginBottom: 12 }}>Technical Skills</h4>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 18 }}>
+              {candidate.skills.length > 0 ? candidate.skills.map((s, i) => (
+                <span key={i} className="token-pill" style={{ padding: '4px 10px', fontSize: '0.75rem' }}>{s}</span>
+              )) : <span style={{ color: '#64748b', fontSize: '0.8rem' }}>No skills extracted.</span>}
             </div>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-              <div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.785rem', fontWeight: 700, marginBottom: 4 }}>
-                  <span>React & Next.js Framework Ecosystem</span>
-                  <span style={{ color: '#059669' }}>Exceeds Requirement • 98%</span>
+            {candidate.matchingSkills.length > 0 && (
+              <>
+                <h4 style={{ fontSize: '0.85rem', fontWeight: 700, color: '#059669', marginBottom: 8 }}>Matching Skills</h4>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 16 }}>
+                  {candidate.matchingSkills.map((s, i) => (
+                    <span key={i} style={{ background: '#ecfdf5', color: '#059669', fontSize: '0.75rem', fontWeight: 600, padding: '4px 10px', borderRadius: 6 }}>{s}</span>
+                  ))}
                 </div>
-                <div className="bar-track"><div className="bar-fill" style={{ width: '98%', background: '#10b981' }} /></div>
-                <div style={{ fontSize: '0.7rem', color: '#64748b', marginTop: 3 }}>Evidence: 5+ years production SSR/SSG. Turbopack migration. App Router layout patterns.</div>
-              </div>
+              </>
+            )}
 
-              <div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.785rem', fontWeight: 700, marginBottom: 4 }}>
-                  <span>TypeScript (Strict Mode, Generics & AST)</span>
-                  <span style={{ color: '#4f46e5' }}>Strong Fit • 94%</span>
+            {candidate.missingSkills.length > 0 && (
+              <>
+                <h4 style={{ fontSize: '0.85rem', fontWeight: 700, color: '#dc2626', marginBottom: 8 }}>Missing Skills</h4>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                  {candidate.missingSkills.map((s, i) => (
+                    <span key={i} style={{ background: '#fef2f2', color: '#dc2626', fontSize: '0.75rem', fontWeight: 600, padding: '4px 10px', borderRadius: 6 }}>{s}</span>
+                  ))}
                 </div>
-                <div className="bar-track"><div className="bar-fill" style={{ width: '94%', background: '#4f46e5' }} /></div>
-                <div style={{ fontSize: '0.7rem', color: '#64748b', marginTop: 3 }}>Evidence: Strict compiler configs, generic utility type design, full schema-to-client codegen workflows.</div>
-              </div>
-
-              <div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.785rem', fontWeight: 700, marginBottom: 4 }}>
-                  <span>State Management & Cache Layer (Redux / Zustand / TanStack)</span>
-                  <span style={{ color: '#2563eb' }}>Target Matched • 90%</span>
-                </div>
-                <div className="bar-track"><div className="bar-fill" style={{ width: '90%', background: '#3b82f6' }} /></div>
-                <div style={{ fontSize: '0.7rem', color: '#64748b', marginTop: 3 }}>Evidence: Normalized state normalization, offline synchronization caches, TanStack query hooks.</div>
-              </div>
-
-              <div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.785rem', fontWeight: 700, marginBottom: 4 }}>
-                  <span>Testing & QA Automation (Jest, React Testing Library, Playwright)</span>
-                  <span style={{ color: '#64748b' }}>Meets Standard • 85%</span>
-                </div>
-                <div className="bar-track"><div className="bar-fill" style={{ width: '85%', background: '#64748b' }} /></div>
-                <div style={{ fontSize: '0.7rem', color: '#64748b', marginTop: 3 }}>Evidence: 88% coverage on shared UI packages, visual regression tests on Chromatic.</div>
-              </div>
-            </div>
-          </div>
-
-          {/* Potential Growth Areas */}
-          <div style={{ background: '#f8fafc', border: '1px solid #dbeafe', borderRadius: 14, padding: 16, marginBottom: 24 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.8125rem', fontWeight: 800, color: '#1e40af', marginBottom: 8 }}>
-              <AlertTriangle size={16} color="#2563eb" />
-              <span>Potential Growth Areas & Cautionary Factors</span>
-            </div>
-            <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: 10, padding: 12 }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
-                <strong style={{ fontSize: '0.785rem', color: '#0f172a' }}>Backend Golang Experience is Foundational</strong>
-                <span style={{ fontSize: '0.7rem', color: '#059669', background: '#ecfdf5', padding: '2px 8px', borderRadius: 4, fontWeight: 700 }}>Risk Level: Low</span>
-              </div>
-              <p style={{ fontSize: '0.725rem', color: '#64748b', lineHeight: 1.45 }}>
-                While the role prefers full stack elasticity into Go microservices, Dishan’s resume highlights primarily Node/Express and BFF APIs. Given his strong systemic architecture foundations, AI estimates an onboarding lag of approximately 3 weeks to achieve Go proficiency.
-              </p>
-            </div>
+              </>
+            )}
           </div>
 
           {/* Interview Questions */}

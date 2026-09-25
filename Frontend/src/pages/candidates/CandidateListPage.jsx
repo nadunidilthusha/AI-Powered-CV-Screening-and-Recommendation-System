@@ -13,6 +13,20 @@ import CustomizeWeightsModal from '../../components/modals/CustomizeWeightsModal
 import candidateService from '../../services/candidateService';
 import '../../styles/pages.css';
 
+// Normalises a value that may be a string ("React, Node") or an array
+// (["React", "Node"]) into a clean array of strings. Handles the legacy
+// seeded candidates whose skill fields were stored as strings.
+const toSkillArray = (value) => {
+  if (Array.isArray(value)) return value;
+  if (typeof value === 'string') {
+    return value
+      .split(/\s*,\s*|\s+/)
+      .map((s) => s.trim())
+      .filter(Boolean);
+  }
+  return [];
+};
+
 const CandidateListPage = () => {
   const navigate = useNavigate();
   const { showToast } = useAuth();
@@ -56,11 +70,11 @@ const CandidateListPage = () => {
           title: c.technicalSkills?.[0] ? `${c.technicalSkills[0]} Specialist` : 'Candidate',
           matchPct: c.aiEvaluation?.matchPercentage || 0,
           recommendationStatus: c.aiEvaluation?.recommendationStatus || 'Recommended',
-          matchingSkills: c.aiEvaluation?.matchingSkills || [],
-          missingSkills: c.aiEvaluation?.missingSkills || [],
+          matchingSkills: toSkillArray(c.aiEvaluation?.matchingSkills),
+          missingSkills: toSkillArray(c.aiEvaluation?.missingSkills),
           justification: c.aiEvaluation?.justification || 'Strong profile with high suitability for the position.',
           avatar: c.cvUrl?.startsWith('http') ? c.cvUrl : 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
-          skills: c.technicalSkills || [],
+          skills: toSkillArray(c.technicalSkills),
           experience: c.experience || '0 Yrs',
           expEdu: `${c.experience || '0 Yrs'} • ${c.education || 'N/A'}`,
           status: c.status || 'Under Review',
