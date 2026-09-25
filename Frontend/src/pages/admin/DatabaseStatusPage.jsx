@@ -67,10 +67,6 @@ const DatabaseStatusPage = () => {
           </div>
         </div>
 
-        <div className="mt-6 p-4 bg-blue-50 border border-blue-100 rounded-lg text-xs text-blue-800">
-          <strong>Note:</strong> Storage metrics are managed by MongoDB Atlas and are not exposed
-          via the Mongoose connection. Use the Atlas dashboard for capacity monitoring.
-        </div>
       </div>
     </div>
   );

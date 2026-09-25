@@ -106,7 +106,7 @@ const ApiConfigurationPage = () => {
           </div>
 
           <p className="text-xs text-slate-500 mt-2">
-            The key is stored in MongoDB. It does not yet automatically update the Python microservice's .env — update that separately when rotating.
+            The Python AI microservice picks up key changes within 60 seconds - no restart required.
           </p>
         </div>
       </div>
