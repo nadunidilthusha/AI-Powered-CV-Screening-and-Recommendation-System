@@ -1,10 +1,17 @@
 const express = require('express');
 const router = express.Router();
-const uploadCv = require('../middleware/uploadMiddleware'); // Using your team's file
+const uploadCv = require('../middleware/uploadMiddleware');
 const { extractCVText } = require('../controllers/aiAgentController');
-const { protect } = require('../middleware/authMiddleware'); // Assuming this exists
 
-// The route expects a file uploaded with the field name 'cv'
-router.post('/extract', uploadCv.single('cv'), extractCVText);
+router.post(
+  '/extract',
+  (req, res, next) => {
+    console.log('=== /extract request ===');
+    console.log('Content-Type:', req.headers['content-type']);
+    next();
+  },
+  uploadCv.single('cv'),
+  extractCVText
+);
 
 module.exports = router;
