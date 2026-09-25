@@ -65,15 +65,30 @@ const UserManagementPage = () => {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleCreateUser = (e) => {
+  const handleCreateUser = async (e) => {
     e.preventDefault();
-    if (validateForm()) {
-      // In a real application, you would POST this to the backend here
-      const newUser = { _id: Date.now().toString(), name: formData.name, email: formData.email, role: formData.role };
-      setUsers([...users, newUser]);
+    if (!validateForm()) return;
+
+    try {
+      const response = await adminService.createUser({
+        fullName: formData.name,
+        email: formData.email,
+        password: formData.password,
+        role: formData.role === 'System Administrator' ? 'admin' : 'hr_manager',
+      });
+
+      setUsers([...users, {
+        _id: response.data.data._id,
+        name: response.data.data.fullName,
+        email: response.data.data.email,
+        role: response.data.data.role,
+      }]);
+
       setIsAddModalOpen(false);
       setFormData({ name: '', email: '', role: 'Select a role...', password: '', confirmPassword: '', sendEmail: true });
       setErrors({});
+    } catch (error) {
+      alert(error.response?.data?.message || 'Failed to create user');
     }
   };
 
@@ -83,12 +98,23 @@ const UserManagementPage = () => {
     setIsEditModalOpen(true);
   };
 
-  const handleUpdateRole = (e) => {
+  const handleUpdateRole = async (e) => {
     e.preventDefault();
     if (!activeEditUser) return;
-    setUsers(users.map((u) => (u._id === activeEditUser._id ? { ...u, role: newAssignedRole } : u)));
-    setIsEditModalOpen(false);
-    setActiveEditUser(null);
+
+    try {
+      const roleValue = newAssignedRole === 'System Administrator' ? 'admin' : 'hr_manager';
+      await adminService.updateUserRole(activeEditUser._id, roleValue);
+
+      setUsers(users.map((u) => (
+        u._id === activeEditUser._id ? { ...u, role: newAssignedRole } : u
+      )));
+
+      setIsEditModalOpen(false);
+      setActiveEditUser(null);
+    } catch (error) {
+      alert(error.response?.data?.message || 'Failed to update role');
+    }
   };
 
   return (
