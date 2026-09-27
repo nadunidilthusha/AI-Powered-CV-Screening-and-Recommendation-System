@@ -3,3 +3,9 @@ dist
 .vite
 *.pdf
 *.rtf
+
+# Python
+AI-Microservice/venv/
+**/__pycache__/
+*.pyc
+

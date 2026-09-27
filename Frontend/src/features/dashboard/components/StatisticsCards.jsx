@@ -5,50 +5,50 @@ import {
   FileCheck2,
 } from 'lucide-react';
 
-const statistics = [
-  {
-    title: 'Total Job Postings',
-    value: '12',
-    helperValue: '+2',
-    helperText: 'this month',
-    helperColor: 'text-green-600',
-    icon: BriefcaseBusiness,
-    iconColor: 'text-blue-600',
-    iconBg: 'bg-blue-50',
-  },
-  {
-    title: 'Active Jobs',
-    value: '8',
-    helperValue: '67%',
-    helperText: 'of total jobs',
-    helperColor: 'text-blue-600',
-    icon: CircleCheckBig,
-    iconColor: 'text-cyan-600',
-    iconBg: 'bg-cyan-50',
-  },
-  {
-    title: 'Total Candidates',
-    value: '124',
-    helperValue: '+18',
-    helperText: 'new candidates',
-    helperColor: 'text-green-600',
-    icon: Users,
-    iconColor: 'text-green-600',
-    iconBg: 'bg-green-50',
-  },
-  {
-    title: 'CVs Processed',
-    value: '105',
-    helperValue: '19',
-    helperText: 'pending / processing',
-    helperColor: 'text-blue-600',
-    icon: FileCheck2,
-    iconColor: 'text-amber-500',
-    iconBg: 'bg-amber-50',
-  },
-];
+const StatisticsCards = ({ data }) => {
+  const statistics = [
+    {
+      title: 'Total Job Postings',
+      value: data?.totalJobPostings ?? 0,
+      helperValue: `+${data?.jobsCreatedThisMonth ?? 0}`,
+      helperText: 'this month',
+      helperColor: 'text-green-600',
+      icon: BriefcaseBusiness,
+      iconColor: 'text-blue-600',
+      iconBg: 'bg-blue-50',
+    },
+    {
+      title: 'Active Jobs',
+      value: data?.activeJobs ?? 0,
+      helperValue: `${data?.activeJobsPercentage ?? 0}%`,
+      helperText: 'of total jobs',
+      helperColor: 'text-blue-600',
+      icon: CircleCheckBig,
+      iconColor: 'text-cyan-600',
+      iconBg: 'bg-cyan-50',
+    },
+    {
+      title: 'Total Candidates',
+      value: data?.totalCandidates ?? 0,
+      helperValue: `+${data?.candidatesCreatedThisMonth ?? 0}`,
+      helperText: 'new candidates',
+      helperColor: 'text-green-600',
+      icon: Users,
+      iconColor: 'text-green-600',
+      iconBg: 'bg-green-50',
+    },
+    {
+      title: 'CVs Processed',
+      value: data?.cvsProcessed ?? 0,
+      helperValue: data?.cvsPendingOrProcessing ?? 0,
+      helperText: 'pending / processing',
+      helperColor: 'text-blue-600',
+      icon: FileCheck2,
+      iconColor: 'text-amber-500',
+      iconBg: 'bg-amber-50',
+    },
+  ];
 
-const StatisticsCards = () => {
   return (
     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
       {statistics.map((item) => {
