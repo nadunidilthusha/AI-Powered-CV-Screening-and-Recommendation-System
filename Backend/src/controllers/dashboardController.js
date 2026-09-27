@@ -246,7 +246,7 @@ const buildDashboardData = async () => {
       ) {
         status = 'Failed';
       } else if (
-        counts.complete === counts.total
+        processed === counts.total
       ) {
         status = 'Completed';
       } else if (

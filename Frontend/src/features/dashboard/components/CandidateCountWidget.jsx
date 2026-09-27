@@ -1,152 +1,41 @@
 import { useState } from 'react';
 
-const candidateData = {
-  all: [
-    {
-      label: 'Highly Recommended',
-      value: 32,
-      color: '#22c55e',
-      dotColor: 'bg-green-500',
-    },
-    {
-      label: 'Recommended',
-      value: 56,
-      color: '#2563eb',
-      dotColor: 'bg-blue-600',
-    },
-    {
-      label: 'Not Recommended',
-      value: 25,
-      color: '#f59e0b',
-      dotColor: 'bg-amber-500',
-    },
-    {
-      label: 'Pending',
-      value: 11,
-      color: '#cbd5e1',
-      dotColor: 'bg-slate-300',
-    },
-  ],
-
-  'software-engineer': [
-    {
-      label: 'Highly Recommended',
-      value: 8,
-      color: '#22c55e',
-      dotColor: 'bg-green-500',
-    },
-    {
-      label: 'Recommended',
-      value: 10,
-      color: '#2563eb',
-      dotColor: 'bg-blue-600',
-    },
-    {
-      label: 'Not Recommended',
-      value: 5,
-      color: '#f59e0b',
-      dotColor: 'bg-amber-500',
-    },
-    {
-      label: 'Pending',
-      value: 2,
-      color: '#cbd5e1',
-      dotColor: 'bg-slate-300',
-    },
-  ],
-
-  'data-analyst': [
-    {
-      label: 'Highly Recommended',
-      value: 4,
-      color: '#22c55e',
-      dotColor: 'bg-green-500',
-    },
-    {
-      label: 'Recommended',
-      value: 7,
-      color: '#2563eb',
-      dotColor: 'bg-blue-600',
-    },
-    {
-      label: 'Not Recommended',
-      value: 3,
-      color: '#f59e0b',
-      dotColor: 'bg-amber-500',
-    },
-    {
-      label: 'Pending',
-      value: 1,
-      color: '#cbd5e1',
-      dotColor: 'bg-slate-300',
-    },
-  ],
-
-  'ui-ux-designer': [
-    {
-      label: 'Highly Recommended',
-      value: 5,
-      color: '#22c55e',
-      dotColor: 'bg-green-500',
-    },
-    {
-      label: 'Recommended',
-      value: 9,
-      color: '#2563eb',
-      dotColor: 'bg-blue-600',
-    },
-    {
-      label: 'Not Recommended',
-      value: 4,
-      color: '#f59e0b',
-      dotColor: 'bg-amber-500',
-    },
-    {
-      label: 'Pending',
-      value: 2,
-      color: '#cbd5e1',
-      dotColor: 'bg-slate-300',
-    },
-  ],
-
-  'qa-engineer': [
-    {
-      label: 'Highly Recommended',
-      value: 2,
-      color: '#22c55e',
-      dotColor: 'bg-green-500',
-    },
-    {
-      label: 'Recommended',
-      value: 5,
-      color: '#2563eb',
-      dotColor: 'bg-blue-600',
-    },
-    {
-      label: 'Not Recommended',
-      value: 2,
-      color: '#f59e0b',
-      dotColor: 'bg-amber-500',
-    },
-    {
-      label: 'Pending',
-      value: 1,
-      color: '#cbd5e1',
-      dotColor: 'bg-slate-300',
-    },
-  ],
-};
-
-const CandidateCountWidget = () => {
-  const [selectedJob, setSelectedJob] = useState('all');
+const CandidateCountWidget = ({ data }) => {
   const [hoveredStat, setHoveredStat] = useState(null);
 
-  const candidateStats = candidateData[selectedJob];
+  const candidateStats = [
+    {
+      label: 'Highly Recommended',
+      value: data?.highlyRecommended ?? 0,
+      color: '#22c55e',
+      dotColor: 'bg-green-500',
+    },
+    {
+      label: 'Recommended',
+      value: data?.recommended ?? 0,
+      color: '#2563eb',
+      dotColor: 'bg-blue-600',
+    },
+    {
+      label: 'Not Recommended',
+      value: data?.notRecommended ?? 0,
+      color: '#f59e0b',
+      dotColor: 'bg-amber-500',
+    },
+    {
+      label: 'Pending',
+      value: data?.pending ?? 0,
+      color: '#cbd5e1',
+      dotColor: 'bg-slate-300',
+    },
+  ];
 
-  const totalCandidates = candidateStats.reduce(
-    (total, item) => total + item.value,
-    0
-  );
+  const totalCandidates =
+    data?.total ??
+    candidateStats.reduce(
+      (total, item) => total + item.value,
+      0
+    );
 
   const radius = 52;
   const circumference = 2 * Math.PI * radius;
@@ -167,28 +56,9 @@ const CandidateCountWidget = () => {
           </p>
         </div>
 
-        <select
-          value={selectedJob}
-          onChange={(event) => {
-            setSelectedJob(event.target.value);
-            setHoveredStat(null);
-          }}
-          className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs text-slate-600 outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
-        >
-          <option value="all">All jobs</option>
-          <option value="software-engineer">
-            Software Engineer
-          </option>
-          <option value="data-analyst">
-            Data Analyst
-          </option>
-          <option value="ui-ux-designer">
-            UI/UX Designer
-          </option>
-          <option value="qa-engineer">
-            QA Engineer
-          </option>
-        </select>
+        <div className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs text-slate-600">
+          All jobs
+        </div>
       </div>
 
       {/* Content */}
