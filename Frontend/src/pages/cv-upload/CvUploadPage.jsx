@@ -42,12 +42,10 @@ const CvUploadPage = () => {
 
         const response = await jobService.getJobs();
 
-        const responseData = response?.data?.data;
-
-        const fetchedJobs = Array.isArray(responseData)
-          ? responseData
-          : Array.isArray(responseData?.jobs)
-            ? responseData.jobs
+        const fetchedJobs = Array.isArray(response?.data)
+          ? response.data
+          : Array.isArray(response?.data?.jobs)
+            ? response.data.jobs
             : [];
 
         const activeJobs = fetchedJobs.filter(
