@@ -15,13 +15,17 @@ const asyncHandler = require('../utils/asyncHandler');
   Recent Jobs is intentionally NOT included because
   it is not part of the approved Dashboard UI.
 */
-const buildDashboardData = async () => {
+const buildDashboardData = async (jobId = null) => {
+  const candidateFilter = jobId
+    ? { jobId }
+    : {};
+
   const [jobs, candidates] = await Promise.all([
     Job.find({})
       .sort({ createdAt: -1 })
       .lean(),
 
-    Candidate.find({})
+    Candidate.find(candidateFilter)
       .lean(),
   ]);
 
@@ -454,8 +458,10 @@ const getDashboardStatistics =
 */
 const getCandidateStatistics =
   asyncHandler(async (req, res) => {
+    const jobId = req.query.jobId || null;
+
     const data =
-      await buildDashboardData();
+      await buildDashboardData(jobId);
 
     res.success(
       {
