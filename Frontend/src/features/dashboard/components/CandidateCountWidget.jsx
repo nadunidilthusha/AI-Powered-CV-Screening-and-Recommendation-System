@@ -1,6 +1,12 @@
 import { useState } from 'react';
 
-const CandidateCountWidget = ({ data }) => {
+const CandidateCountWidget = ({
+  data,
+  jobs = [],
+  selectedJob = '',
+  onJobChange,
+  loading = false,
+}) => {
   const [hoveredStat, setHoveredStat] = useState(null);
 
   const candidateStats = [
@@ -56,13 +62,34 @@ const CandidateCountWidget = ({ data }) => {
           </p>
         </div>
 
-        <div className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs text-slate-600">
-          All jobs
-        </div>
+        {/* Job dropdown */}
+        <select
+          value={selectedJob}
+          onChange={(event) =>
+            onJobChange?.(event.target.value)
+          }
+          disabled={loading}
+          className="max-w-[190px] rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs text-slate-600 outline-none transition focus:border-blue-400 focus:ring-2 focus:ring-blue-100 disabled:cursor-wait disabled:bg-slate-50"
+        >
+          <option value="">All jobs</option>
+
+          {jobs.map((job) => (
+            <option
+              key={job._id || job.id}
+              value={job._id || job.id}
+            >
+              {job.title}
+            </option>
+          ))}
+        </select>
       </div>
 
       {/* Content */}
-      <div className="mt-5 flex flex-col items-center justify-between gap-6 sm:flex-row">
+      <div
+        className={`mt-5 flex flex-col items-center justify-between gap-6 transition-opacity sm:flex-row ${
+          loading ? 'opacity-50' : 'opacity-100'
+        }`}
+      >
         {/* Doughnut Chart */}
         <div className="relative h-40 w-40 shrink-0">
           <svg
