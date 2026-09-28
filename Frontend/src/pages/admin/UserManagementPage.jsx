@@ -314,16 +314,6 @@ const UserManagementPage = () => {
                   {errors.password && <p className="text-xs text-red-500 mt-1">{errors.password}</p>}
                 </div>
 
-                <label className="flex items-center gap-2 cursor-pointer pt-1">
-                  <input 
-                    type="checkbox" 
-                    name="sendEmail"
-                    checked={formData.sendEmail}
-                    onChange={handleChange}
-                    className="w-4 h-4 text-blue-600 rounded border-slate-300 focus:ring-blue-600" 
-                  />
-                  <span className="text-sm text-slate-600 font-medium">Send welcome email with login instructions</span>
-                </label>
               </div>
 
               <div className="px-6 py-4 flex items-center justify-end gap-3 border-t border-slate-100 bg-slate-50/50">
