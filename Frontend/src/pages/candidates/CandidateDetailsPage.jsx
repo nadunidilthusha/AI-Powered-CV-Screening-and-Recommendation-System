@@ -3,7 +3,7 @@ import { useParams, Link } from 'react-router-dom';
 import useAuth from '../../hooks/useAuth';
 import { ROUTES } from '../../routes/routePaths';
 import { 
-  Bookmark, Sparkles, Check, 
+  Sparkles, Check, 
   FileText, ShieldCheck, ExternalLink, 
   Layers, CheckCircle2, ChevronRight, AlertTriangle 
 } from 'lucide-react';
@@ -28,7 +28,6 @@ const CandidateDetailsPage = () => {
   
   const [candidate, setCandidate] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [isShortlisted, setIsShortlisted] = useState(false);
 
   useEffect(() => {
     const fetchDetails = async () => {
@@ -98,21 +97,6 @@ const CandidateDetailsPage = () => {
             <span style={{ color: '#0f172a', fontWeight: 600 }}>{candidateName}</span>
           </div>
           <h1 className="text-2xl font-bold tracking-tight text-slate-900">Candidate Evaluation Dossier</h1>
-        </div>
-
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <button
-            type="button"
-            className="rounded-lg bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-700 flex items-center justify-center gap-2"
-            style={{ width: 'auto', padding: '0 16px', height: 38, fontSize: '0.785rem' }}
-            onClick={() => {
-              setIsShortlisted(!isShortlisted);
-              showToast(isShortlisted ? 'Candidate removed from Shortlist' : 'Candidate added to Shortlist', 'info');
-            }}
-          >
-            <Bookmark size={14} fill={isShortlisted ? 'currentColor' : 'none'} />
-            <span>{isShortlisted ? 'Shortlisted' : 'Add to Shortlist'}</span>
-          </button>
         </div>
       </div>
 
