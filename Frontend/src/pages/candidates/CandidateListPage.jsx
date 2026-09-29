@@ -41,6 +41,17 @@ const CandidateListPage = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [candidates, setCandidates] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [isMobileFilterOpen, setIsMobileFilterOpen] = useState(false);
+
+  const activeFiltersCount = [
+    searchQuery,
+    selectedExpBracket,
+    skillsFilter.reactNext,
+    skillsFilter.typescript,
+    skillsFilter.python,
+    skillsFilter.aws,
+    availability
+  ].filter(Boolean).length;
 
   useEffect(() => {
     const fetchJobs = async () => {
@@ -272,7 +283,7 @@ const CandidateListPage = () => {
           </div>
 
           {/* 4 Stat Cards */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 16, marginBottom: 24 }}>
+          <div className="candidate-stats-grid">
             <div className="mini-stat-card">
               <span style={{ fontSize: '0.7rem', fontWeight: 700, color: '#64748b' }}>TOTAL SCREENED</span>
               <div className="stat-num-row">
@@ -317,9 +328,31 @@ const CandidateListPage = () => {
             </div>
           </div>
 
+          {/* Mobile Filter Toggle */}
+          <div className="mobile-filter-bar">
+            <button
+              type="button"
+              onClick={() => setIsMobileFilterOpen(!isMobileFilterOpen)}
+              style={{ background: 'none', border: 'none', display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.8125rem', fontWeight: 700, color: '#0f172a', cursor: 'pointer' }}
+            >
+              <Filter size={15} color="#4f46e5" />
+              <span>Filters {activeFiltersCount > 0 ? `(${activeFiltersCount} Active)` : ''}</span>
+              <ChevronDown size={14} style={{ transform: isMobileFilterOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }} />
+            </button>
+            {activeFiltersCount > 0 && (
+              <button
+                type="button"
+                onClick={handleResetFilters}
+                style={{ background: 'none', border: 'none', color: '#4f46e5', fontSize: '0.75rem', fontWeight: 700, cursor: 'pointer' }}
+              >
+                Reset All
+              </button>
+            )}
+          </div>
+
           {/* Main Grid: Filters Sidebar + Candidate Table */}
           <div className="pipeline-layout">
-            <aside className="filters-sidebar">
+            <aside className={`filters-sidebar ${isMobileFilterOpen ? 'filters-sidebar-mobile-visible' : 'filters-sidebar-mobile-hidden'}`}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
                 <span style={{ fontSize: '0.9rem', fontWeight: 800, color: '#0f172a', display: 'flex', alignItems: 'center', gap: 6 }}>
                   <Filter size={15} /> Filters
@@ -466,7 +499,8 @@ const CandidateListPage = () => {
                 </div>
               </div>
 
-              <div style={{ overflowX: 'auto' }}>
+              {/* Desktop Table View */}
+              <div className="desktop-table-view table-responsive-wrapper">
                 <table className="candidate-data-table">
                   <thead>
                     <tr>
@@ -532,24 +566,14 @@ const CandidateListPage = () => {
                           </span>
                         </td>
                         <td style={{ textAlign: 'right' }}>
-                          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-                            <button
-                              type="button"
-                              className="link-button"
-                              style={{ fontSize: '0.75rem' }}
-                              onClick={() => navigate(`/candidates/${candidate.id}`)}
-                            >
-                              View Profile
-                            </button>
-                            <button
-                              type="button"
-                              className="pill-btn active"
-                              style={{ padding: '4px 10px', fontSize: '0.725rem' }}
-                              onClick={() => handleOpenInterview(candidate.name)}
-                            >
-                              Invite
-                            </button>
-                          </div>
+                          <button
+                            type="button"
+                            className="link-button"
+                            style={{ fontSize: '0.75rem', fontWeight: 700 }}
+                            onClick={() => navigate(`/candidates/${candidate.id}`)}
+                          >
+                            View Profile
+                          </button>
                         </td>
                       </tr>
                     ))}
@@ -557,10 +581,66 @@ const CandidateListPage = () => {
                 </table>
               </div>
 
+              {/* Mobile Candidate Cards View (visible on mobile screens <= 640px) */}
+              <div className="mobile-candidates-list">
+                {paginatedCandidates.map(candidate => (
+                  <div key={`mob-${candidate.id}`} className="mobile-candidate-card">
+                    <div className="mobile-candidate-card-header">
+                      <div className="mobile-candidate-profile">
+                        <input
+                          type="checkbox"
+                          checked={!!selectedRows[candidate.id]}
+                          onChange={() => handleSelectRow(candidate.id)}
+                        />
+                        <img src={candidate.avatar} alt={candidate.name} className="mobile-candidate-avatar" />
+                        <div className="mobile-candidate-info">
+                          <div className="mobile-candidate-name">{candidate.name}</div>
+                          <div className="mobile-candidate-title">{candidate.title}</div>
+                        </div>
+                      </div>
+                      <span className={`status-pill ${candidate.status === 'Shortlisted' ? 'shortlisted' : candidate.status === 'Under Review' ? 'under-review' : 'interviewing'}`}>
+                        {candidate.status}
+                      </span>
+                    </div>
+
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 4, background: '#f8fafc', padding: 8, borderRadius: 8 }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <span style={{ fontSize: '0.725rem', fontWeight: 700, color: '#059669', display: 'inline-flex', alignItems: 'center', gap: 3 }}>
+                          <Sparkles size={12} /> {candidate.matchPct}% AI Match
+                        </span>
+                        <span style={{ fontSize: '0.7rem', color: '#64748b' }}>{candidate.expEdu}</span>
+                      </div>
+                      <div className="bar-track">
+                        <div className="bar-fill" style={{ width: `${candidate.matchPct}%` }} />
+                      </div>
+                    </div>
+
+                    <div className="mobile-candidate-skills">
+                      {candidate.skills.slice(0, 4).map(s => (
+                        <span key={s} className="token-pill" style={{ padding: '2px 7px', fontSize: '0.6875rem' }}>
+                          {s}
+                        </span>
+                      ))}
+                    </div>
+
+                    <div className="mobile-candidate-footer">
+                      <span style={{ fontSize: '0.7rem', color: '#64748b' }}>{candidate.job}</span>
+                      <button
+                        type="button"
+                        className="rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-blue-700"
+                        onClick={() => navigate(`/candidates/${candidate.id}`)}
+                      >
+                        View Profile
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12, marginTop: 18, paddingTop: 14, borderTop: '1px solid #f1f5f9' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap' }}>
                   <span style={{ fontSize: '0.75rem', color: '#64748b' }}>
-                    Showing {(currentPage - 1) * itemsPerPage + 1} to {Math.min(currentPage * itemsPerPage, filteredCandidates.length)} of {filteredCandidates.length} shortlisted candidates
+                    Showing {(currentPage - 1) * itemsPerPage + 1} to {Math.min(currentPage * itemsPerPage, filteredCandidates.length)} of {filteredCandidates.length} candidates
                   </span>
                   <button
                     type="button"
@@ -568,16 +648,7 @@ const CandidateListPage = () => {
                     style={{ fontSize: '0.75rem' }}
                     onClick={handleExportCsv}
                   >
-                    Bulk Export
-                  </button>
-                  <span>•</span>
-                  <button
-                    type="button"
-                    className="link-button"
-                    style={{ fontSize: '0.75rem' }}
-                    onClick={() => handleOpenInterview('Selected Candidates')}
-                  >
-                    Move to Interview
+                    Bulk Export CSV
                   </button>
                 </div>
 
@@ -638,7 +709,7 @@ const CandidateListPage = () => {
           </div>
 
           {/* Top Section: Live Candidate Pool Stats */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 16, marginBottom: 24 }}>
+          <div className="candidate-stats-grid">
             <div className="mini-stat-card">
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                 <span style={{ fontSize: '0.7rem', fontWeight: 700, color: '#64748b' }}>ACTIVE CANDIDATES</span>
@@ -805,33 +876,35 @@ const CandidateListPage = () => {
                 </span>
               </div>
 
-              <table className="matrix-table">
-                <thead>
-                  <tr>
-                    <th>Candidate</th>
-                    <th>Semantic Match</th>
-                    <th>Technical Skills</th>
-                    <th>Experience</th>
-                    <th>Recommendation</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {topRecommendations.map((cand) => (
-                    <tr key={`matrix-${cand.id}`}>
-                      <td>
-                        <span className="matrix-dot-green" />
-                        <strong>{cand.name}</strong>
-                      </td>
-                      <td>{cand.matchPct}%</td>
-                      <td>{cand.skills.slice(0, 3).join(', ') || 'Full Stack'}</td>
-                      <td style={{ color: '#059669', fontWeight: 700 }}>{cand.experience}</td>
-                      <td style={{ fontWeight: 700, color: cand.matchPct >= 90 ? '#10b981' : '#3b82f6' }}>
-                        {cand.recommendationStatus}
-                      </td>
+              <div className="matrix-table-wrapper">
+                <table className="matrix-table">
+                  <thead>
+                    <tr>
+                      <th>Candidate</th>
+                      <th>Semantic Match</th>
+                      <th>Technical Skills</th>
+                      <th>Experience</th>
+                      <th>Recommendation</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody>
+                    {topRecommendations.map((cand) => (
+                      <tr key={`matrix-${cand.id}`}>
+                        <td>
+                          <span className="matrix-dot-green" />
+                          <strong>{cand.name}</strong>
+                        </td>
+                        <td>{cand.matchPct}%</td>
+                        <td>{cand.skills.slice(0, 3).join(', ') || 'Full Stack'}</td>
+                        <td style={{ color: '#059669', fontWeight: 700 }}>{cand.experience}</td>
+                        <td style={{ fontWeight: 700, color: cand.matchPct >= 90 ? '#10b981' : '#3b82f6' }}>
+                          {cand.recommendationStatus}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
 
               <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 10, padding: 12, marginTop: 16, fontSize: '0.725rem', color: '#64748b', lineHeight: 1.45 }}>
                 <CheckCircle2 size={16} color="#059669" style={{ flexShrink: 0, marginTop: 1 }} />

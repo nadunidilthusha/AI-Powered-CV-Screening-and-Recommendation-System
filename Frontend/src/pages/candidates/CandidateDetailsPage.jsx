@@ -78,7 +78,7 @@ const CandidateDetailsPage = () => {
       {/* Top Header */}
       <div className="page-top-bar" style={{ marginBottom: 16 }}>
         <div>
-          <div style={{ fontSize: '0.75rem', color: '#64748b', display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+          <div style={{ fontSize: '0.75rem', color: '#64748b', display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4, flexWrap: 'wrap' }}>
             <Link to={ROUTES.CANDIDATES} style={{ color: '#64748b', textDecoration: 'none' }}>Candidates</Link>
             <ChevronRight size={12} />
             <span>{candidate.job}</span>
@@ -189,7 +189,7 @@ const CandidateDetailsPage = () => {
 
         {/* Right Main Content */}
         <div>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14, flexWrap: 'wrap', gap: 8 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               <ShieldCheck size={18} color="#4f46e5" />
               <h3 style={{ fontSize: '1.05rem', fontWeight: 800, color: '#0f172a' }}>AI-Verified Core Strengths</h3>
@@ -244,7 +244,7 @@ const CandidateDetailsPage = () => {
 
           {/* Technical Competency */}
           <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: 18, padding: 20, marginBottom: 24 }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16, flexWrap: 'wrap', gap: 8 }}>
               <div>
                 <h4 style={{ fontSize: '0.95rem', fontWeight: 800, color: '#0f172a' }}>Technical Competency & Alignment</h4>
                 <p style={{ fontSize: '0.725rem', color: '#64748b' }}>Benchmark scores synthesized against evaluated role profile</p>
