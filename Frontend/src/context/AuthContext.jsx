@@ -325,29 +325,25 @@ export const AuthProvider = ({
     }
   };
 
-  const forgotPassword =
-    async (email) => {
-      try {
-        const response =
-          await authService.forgotPassword(
-            email
-          );
+  const forgotPassword = async (email) => {
+    try {
+      const response = await authService.forgotPassword(email);
+      showToast(response.data.message || 'Password recovery link dispatched.', 'success', 6000);
+      return true;
+    } catch (err) {
+      throw new Error(err.response?.data?.message || 'Failed to send reset link.');
+    }
+  };
 
-        showToast(
-          response.data.message ||
-            'Password recovery link dispatched.',
-          'success',
-          6000
-        );
-
-        return true;
-      } catch (err) {
-        throw new Error(
-          err.response?.data?.message ||
-            'Failed to send reset link.'
-        );
-      }
-    };
+  const resetPassword = async (email, password) => {
+    try {
+      const response = await authService.resetPassword({ email, password });
+      showToast(response.data.message || 'Password reset successfully! You can now login.', 'success', 6000);
+      return true;
+    } catch (err) {
+      throw new Error(err.response?.data?.message || 'Failed to reset password.');
+    }
+  };
 
   const logout = async () => {
     try {
@@ -391,6 +387,7 @@ export const AuthProvider = ({
     login,
     register,
     forgotPassword,
+    resetPassword,
     logout,
 
     toasts,

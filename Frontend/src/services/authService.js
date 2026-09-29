@@ -10,6 +10,9 @@ const authService = {
   forgotPassword: (email) =>
     api.post('/auth/forgot-password', { email }),
 
+  resetPassword: (data) =>
+    api.post('/auth/reset-password', data),
+
   logout: () =>
     api.post('/auth/logout'),
 

@@ -7,7 +7,9 @@ const ApiError = require('../utils/ApiError');
 const getCandidatesForJob = asyncHandler(async (req, res) => {
   const { jobId } = req.params;
   const filter = (jobId && jobId !== 'all') ? { jobId } : {};
-  const candidates = await Candidate.find(filter).sort({ 'aiEvaluation.matchPercentage': -1 });
+  const candidates = await Candidate.find(filter)
+    .populate('jobId', 'title department')
+    .sort({ 'aiEvaluation.matchPercentage': -1 });
   res.success(candidates, 'Candidates retrieved successfully');
 });
 
@@ -15,7 +17,7 @@ const getCandidatesForJob = asyncHandler(async (req, res) => {
 // @access Private
 const getCandidateById = asyncHandler(async (req, res) => {
   const { id } = req.params;
-  const candidate = await Candidate.findById(id);
+  const candidate = await Candidate.findById(id).populate('jobId', 'title department');
   if (!candidate) throw new ApiError(404, 'Candidate not found');
   res.success(candidate, 'Candidate details retrieved successfully');
 });

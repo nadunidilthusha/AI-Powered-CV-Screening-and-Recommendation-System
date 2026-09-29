@@ -119,6 +119,25 @@ const forgotPassword = asyncHandler(
   }
 );
 
+// @route  POST /api/auth/reset-password
+// @access Public
+const resetPassword = asyncHandler(async (req, res) => {
+  const { email, password } = req.body;
+  if (!email || !password) {
+    throw new ApiError(400, 'Email and new password are required');
+  }
+
+  const user = await User.findOne({ email });
+  if (!user) {
+    throw new ApiError(404, 'User not found with this email');
+  }
+
+  user.password = password;
+  await user.save();
+
+  res.success(null, 'Password has been reset successfully. You can now login with your new password.');
+});
+
 const logout = asyncHandler(
   async (req, res) => {
     res.success(
@@ -278,6 +297,7 @@ module.exports = {
   register,
   login,
   forgotPassword,
+  resetPassword,
   logout,
   getMe,
   updateMe,

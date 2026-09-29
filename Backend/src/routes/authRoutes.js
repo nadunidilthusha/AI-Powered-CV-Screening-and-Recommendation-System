@@ -4,6 +4,7 @@ const {
   register,
   login,
   forgotPassword,
+  resetPassword,
   logout,
   getMe,
   updateMe,
@@ -46,6 +47,12 @@ router.post(
   '/forgot-password',
   authLimiter,
   forgotPassword
+);
+
+router.post(
+  '/reset-password',
+  authLimiter,
+  resetPassword
 );
 
 router.post(

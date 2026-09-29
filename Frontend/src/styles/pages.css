@@ -625,3 +625,226 @@
   padding: 16px;
   margin-bottom: 12px;
 }
+
+/* ==========================================================================
+   MOBILE RESPONSIVENESS ENHANCEMENTS (Candidate List & Candidate Details)
+   ========================================================================== */
+
+/* Top Bar and Header */
+.page-top-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.candidate-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+/* Mobile Filter Bar */
+.mobile-filter-bar {
+  display: none;
+}
+
+.table-responsive-wrapper {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.table-responsive-wrapper table {
+  min-width: 680px;
+}
+
+.matrix-table-wrapper {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.matrix-table-wrapper table {
+  min-width: 580px;
+}
+
+/* Mobile Candidate Cards (shown on screens <= 640px) */
+.mobile-candidates-list {
+  display: none;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 14px;
+}
+
+.mobile-candidate-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  box-shadow: 0 1px 4px rgba(15, 23, 42, 0.04);
+}
+
+.mobile-candidate-card-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.mobile-candidate-profile {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.mobile-candidate-avatar {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.mobile-candidate-info {
+  min-width: 0;
+}
+
+.mobile-candidate-name {
+  font-weight: 800;
+  font-size: 0.85rem;
+  color: #0f172a;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.mobile-candidate-title {
+  font-size: 0.725rem;
+  color: #64748b;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.mobile-candidate-skills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.mobile-candidate-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: 8px;
+  border-top: 1px solid #f1f5f9;
+  font-size: 0.75rem;
+}
+
+@media (max-width: 900px) {
+  .mobile-filter-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 10px 14px;
+    margin-bottom: 12px;
+  }
+
+  .filters-sidebar-mobile-hidden {
+    display: none;
+  }
+
+  .filters-sidebar-mobile-visible {
+    display: block;
+    margin-bottom: 16px;
+  }
+}
+
+@media (max-width: 640px) {
+  .page-wrapper {
+    padding: 6px 8px 36px 8px;
+  }
+
+  .candidate-stats-grid {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  .mini-stat-card {
+    padding: 14px;
+    border-radius: 14px;
+  }
+
+  .stat-big-num {
+    font-size: 1.5rem;
+  }
+
+  .page-title-row {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+  }
+
+  .page-title-row button {
+    width: 100%;
+    justify-content: center;
+  }
+
+  /* Table switches to Mobile Cards on small screens */
+  .desktop-table-view {
+    display: none;
+  }
+
+  .mobile-candidates-list {
+    display: flex;
+  }
+
+  .pipeline-table-card {
+    padding: 12px;
+    border-radius: 14px;
+  }
+
+  .dossier-sidebar-card {
+    padding: 16px;
+    border-radius: 16px;
+  }
+
+  .strength-box {
+    padding: 14px;
+    border-radius: 14px;
+  }
+
+  .ranked-card {
+    padding: 16px;
+    border-radius: 16px;
+  }
+
+  .ranked-badge-top {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .card-actions-row {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .card-actions-row button {
+    width: 100% !important;
+  }
+
+  .matrix-card {
+    padding: 14px;
+    border-radius: 14px;
+  }
+}
+
