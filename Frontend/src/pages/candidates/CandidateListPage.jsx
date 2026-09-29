@@ -200,8 +200,55 @@ const CandidateListPage = () => {
   };
 
   const handleExportCsv = () => {
-    const count = Object.keys(selectedRows).filter(k => selectedRows[k]).length;
-    showToast(`Exporting ${count} selected candidates to CSV format (SRS REQ-5.4)... Download ready!`, 'success');
+    const selectedIds = Object.keys(selectedRows).filter(k => selectedRows[k]);
+    const candidatesToExport = selectedIds.length > 0
+      ? filteredCandidates.filter(c => selectedRows[c.id])
+      : filteredCandidates;
+
+    if (candidatesToExport.length === 0) {
+      showToast('No candidates available to export.', 'warning');
+      return;
+    }
+
+    const headers = [
+      'Candidate Name',
+      'Job Role',
+      'AI Match (%)',
+      'Recommendation',
+      'Core Skills',
+      'Experience',
+      'Education',
+      'Status',
+      'Email',
+      'Phone'
+    ];
+
+    const rows = candidatesToExport.map(c => [
+      `"${(c.name || '').replace(/"/g, '""')}"`,
+      `"${(c.job || '').replace(/"/g, '""')}"`,
+      c.matchPct ?? 0,
+      `"${(c.recommendationStatus || '').replace(/"/g, '""')}"`,
+      `"${(Array.isArray(c.skills) ? c.skills.join(', ') : c.skills || '').replace(/"/g, '""')}"`,
+      `"${(c.experience || '').replace(/"/g, '""')}"`,
+      `"${(c.education || '').replace(/"/g, '""')}"`,
+      `"${(c.status || '').replace(/"/g, '""')}"`,
+      `"${(c.email || '').replace(/"/g, '""')}"`,
+      `"${(c.phone || '').replace(/"/g, '""')}"`
+    ]);
+
+    const csvContent = '\uFEFF' + [headers.join(','), ...rows.map(r => r.join(','))].join('\r\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    const roleSlug = selectedJobRequisition !== 'All Roles' ? selectedJobRequisition.replace(/\s+/g, '_') : 'candidates';
+    link.download = `${roleSlug}_export_${new Date().toISOString().slice(0, 10)}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+
+    showToast(`Successfully downloaded CSV with ${candidatesToExport.length} candidate(s)!`, 'success');
   };
 
   // ==========================================
@@ -782,7 +829,6 @@ const CandidateListPage = () => {
           {/* 3 Ranked Candidate Cards */}
           <div className="ranked-cards-grid">
             {topRecommendations.map((cand, idx) => {
-              const isShortlisted = !!shortlistedMap[cand.id];
               const badgeTag = idx === 0 ? 'top-1' : idx === 1 ? 'strong' : 'potential';
               const badgeText = idx === 0 ? '#1 AI TOP CHOICE' : idx === 1 ? '#2 STRONG TECHNICAL FIT' : '#3 HIGH POTENTIAL';
 
@@ -854,20 +900,11 @@ const CandidateListPage = () => {
                     <button
                       type="button"
                       className="rounded-lg bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-700 flex items-center justify-center gap-2"
-                      style={{ flex: 1, height: 42, fontSize: '0.8125rem' }}
+                      style={{ flex: 1, width: '100%', height: 42, fontSize: '0.8125rem' }}
                       onClick={() => navigate(`/candidates/${cand.id}`)}
                     >
                       <UserCheck size={14} />
                       <span>View Dossier Profile</span>
-                    </button>
-                    <button
-                      type="button"
-                      className="rounded-lg border border-slate-200 bg-white p-2 text-sm font-semibold text-slate-600 transition hover:bg-slate-50 flex items-center justify-center"
-                      style={{ width: 42, height: 42, padding: 0, color: isShortlisted ? '#10b981' : undefined }}
-                      onClick={() => handleToggleShortlist(cand.id)}
-                      title={isShortlisted ? 'Shortlisted' : 'Add to Shortlist'}
-                    >
-                      <CheckCircle2 size={16} />
                     </button>
                   </div>
                 </div>
