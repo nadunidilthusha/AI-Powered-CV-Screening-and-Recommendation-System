@@ -76,29 +76,34 @@ const CandidateFilters = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm">
-      <div className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in-95 duration-200">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100">
+    <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-slate-900/40 p-4 backdrop-blur-sm">
+      <div className="my-auto max-h-[calc(100vh-2rem)] w-full max-w-md overflow-y-auto rounded-2xl bg-white shadow-xl animate-in fade-in zoom-in-95 duration-200">
+        {/* Header */}
+        <div className="flex items-center justify-between border-b border-slate-100 px-4 py-4 sm:px-6">
           <h2 className="text-lg font-bold text-slate-900">
             Filter Candidates
           </h2>
 
           <button
+            type="button"
             onClick={onClose}
-            className="p-1 rounded-md text-slate-400 hover:bg-slate-100 transition-colors"
+            className="rounded-md p-1 text-slate-400 transition-colors hover:bg-slate-100"
+            aria-label="Close filter modal"
           >
             <X size={20} />
           </button>
         </div>
 
-        <div className="p-6 space-y-6">
+        {/* Content */}
+        <div className="space-y-6 p-4 sm:p-6">
+          {/* Match Percentage */}
           <div>
-            <div className="flex justify-between items-center mb-4">
+            <div className="mb-4 flex items-center justify-between gap-3">
               <label className="text-sm font-semibold text-slate-900">
                 AI Match Percentage
               </label>
 
-              <span className="text-xs font-semibold text-blue-600 bg-blue-50 px-2 py-1 rounded-md border border-blue-100">
+              <span className="shrink-0 rounded-md border border-blue-100 bg-blue-50 px-2 py-1 text-xs font-semibold text-blue-600">
                 Min: {matchValue}%
               </span>
             </div>
@@ -113,22 +118,24 @@ const CandidateFilters = ({
                   e.target.value
                 )
               }
-              className="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-blue-600"
+              className="h-2 w-full cursor-pointer appearance-none rounded-lg bg-slate-200 accent-blue-600"
             />
 
-            <div className="flex justify-between text-xs text-slate-400 mt-2">
+            <div className="mt-2 flex justify-between text-xs text-slate-400">
               <span>0%</span>
               <span>100%</span>
             </div>
           </div>
 
+          {/* Recommendation Status */}
           <div>
-            <label className="text-sm font-semibold text-slate-900 block mb-3">
+            <label className="mb-3 block text-sm font-semibold text-slate-900">
               Recommendation Status
             </label>
 
             <div className="space-y-3">
-              <label className="flex items-center gap-3 p-3 border border-emerald-100 rounded-lg bg-white cursor-pointer hover:bg-slate-50 transition-colors">
+              {/* Highly Recommended */}
+              <label className="flex cursor-pointer items-center gap-3 rounded-lg border border-emerald-100 bg-white p-3 transition-colors hover:bg-slate-50">
                 <input
                   type="checkbox"
                   checked={
@@ -140,15 +147,16 @@ const CandidateFilters = ({
                       'Highly Recommended'
                     )
                   }
-                  className="w-4 h-4 rounded border-slate-300 accent-emerald-500"
+                  className="h-4 w-4 shrink-0 rounded border-slate-300 accent-emerald-500"
                 />
 
-                <span className="px-2.5 py-1 text-xs font-semibold bg-emerald-100 text-emerald-700 rounded-full">
+                <span className="rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-semibold text-emerald-700">
                   Highly Recommended
                 </span>
               </label>
 
-              <label className="flex items-center gap-3 p-3 border border-blue-100 rounded-lg bg-white cursor-pointer hover:bg-slate-50 transition-colors">
+              {/* Recommended */}
+              <label className="flex cursor-pointer items-center gap-3 rounded-lg border border-blue-100 bg-white p-3 transition-colors hover:bg-slate-50">
                 <input
                   type="checkbox"
                   checked={
@@ -160,15 +168,16 @@ const CandidateFilters = ({
                       'Recommended'
                     )
                   }
-                  className="w-4 h-4 rounded border-slate-300 accent-blue-600"
+                  className="h-4 w-4 shrink-0 rounded border-slate-300 accent-blue-600"
                 />
 
-                <span className="px-2.5 py-1 text-xs font-semibold bg-blue-100 text-blue-700 rounded-full">
+                <span className="rounded-full bg-blue-100 px-2.5 py-1 text-xs font-semibold text-blue-700">
                   Recommended
                 </span>
               </label>
 
-              <label className="flex items-center gap-3 p-3 border border-slate-100 rounded-lg bg-white cursor-pointer hover:bg-slate-50 transition-colors">
+              {/* Not Recommended */}
+              <label className="flex cursor-pointer items-center gap-3 rounded-lg border border-slate-100 bg-white p-3 transition-colors hover:bg-slate-50">
                 <input
                   type="checkbox"
                   checked={
@@ -180,10 +189,10 @@ const CandidateFilters = ({
                       'Not Recommended'
                     )
                   }
-                  className="w-4 h-4 rounded border-slate-300 accent-red-500"
+                  className="h-4 w-4 shrink-0 rounded border-slate-300 accent-red-500"
                 />
 
-                <span className="px-2.5 py-1 text-xs font-semibold bg-red-50 text-red-600 rounded-full">
+                <span className="rounded-full bg-red-50 px-2.5 py-1 text-xs font-semibold text-red-600">
                   Not Recommended
                 </span>
               </label>
@@ -191,17 +200,20 @@ const CandidateFilters = ({
           </div>
         </div>
 
-        <div className="px-6 py-4 bg-slate-50 border-t border-slate-100 flex items-center justify-end gap-3">
+        {/* Footer */}
+        <div className="flex flex-col-reverse gap-3 border-t border-slate-100 bg-slate-50 px-4 py-4 sm:flex-row sm:items-center sm:justify-end sm:px-6">
           <button
+            type="button"
             onClick={handleClear}
-            className="px-4 py-2 text-sm font-semibold text-slate-600 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors"
+            className="w-full rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-600 transition-colors hover:bg-slate-50 sm:w-auto"
           >
             Clear
           </button>
 
           <button
+            type="button"
             onClick={handleApply}
-            className="px-4 py-2 text-sm font-semibold text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors shadow-sm"
+            className="w-full rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-blue-700 sm:w-auto"
           >
             Apply Filters
           </button>
