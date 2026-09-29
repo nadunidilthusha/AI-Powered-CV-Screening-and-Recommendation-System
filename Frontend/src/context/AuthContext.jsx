@@ -110,6 +110,16 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  const resetPassword = async (email, password) => {
+    try {
+      const response = await authService.resetPassword({ email, password });
+      showToast(response.data.message || 'Password reset successfully! You can now login.', 'success', 6000);
+      return true;
+    } catch (err) {
+      throw new Error(err.response?.data?.message || 'Failed to reset password.');
+    }
+  };
+
   const logout = async () => {
     try {
       await authService.logout();
@@ -133,7 +143,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   const value = {
-    user, setUser, updateUser, login, register, forgotPassword, logout, toasts, showToast, removeToast, isLogoutModalOpen, setIsLogoutModalOpen
+    user, setUser, updateUser, login, register, forgotPassword, resetPassword, logout, toasts, showToast, removeToast, isLogoutModalOpen, setIsLogoutModalOpen
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

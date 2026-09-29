@@ -8,9 +8,8 @@ import {
   UserCheck, Scale, RefreshCw, Send, ShieldCheck, FileText, 
   Award, Check, ExternalLink, Layers 
 } from 'lucide-react';
-import ScheduleInterviewModal from '../../components/modals/ScheduleInterviewModal';
-import CustomizeWeightsModal from '../../components/modals/CustomizeWeightsModal';
 import candidateService from '../../services/candidateService';
+import jobService from '../../services/jobService';
 import '../../styles/pages.css';
 
 const CandidateListPage = () => {
@@ -20,10 +19,8 @@ const CandidateListPage = () => {
   // Active Tab: 'pipeline' | 'recommendations'
   const [activeTab, setActiveTab] = useState('pipeline');
 
-  // Shared Modals
-  const [interviewModalOpen, setInterviewModalOpen] = useState(false);
-  const [selectedCandidateForInterview, setSelectedCandidateForInterview] = useState('Dishan Perera');
-  const [weightsModalOpen, setWeightsModalOpen] = useState(false);
+  // Dynamic Jobs from backend
+  const [jobs, setJobs] = useState([]);
 
   // ==========================================
   // PIPELINE STATE (Screenshot 2)
@@ -46,6 +43,18 @@ const CandidateListPage = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    const fetchJobs = async () => {
+      try {
+        const res = await jobService.getJobs();
+        setJobs(res.data || []);
+      } catch (err) {
+        console.error('Failed to fetch jobs:', err);
+      }
+    };
+    fetchJobs();
+  }, []);
+
+  useEffect(() => {
     const fetchCandidates = async () => {
       try {
         setLoading(true);
@@ -64,7 +73,8 @@ const CandidateListPage = () => {
           experience: c.experience || '0 Yrs',
           expEdu: `${c.experience || '0 Yrs'} • ${c.education || 'N/A'}`,
           status: c.status || 'Under Review',
-          job: 'All Roles',
+          job: c.jobId?.title || (typeof c.jobId === 'string' ? c.jobId : 'All Roles'),
+          jobId: c.jobId?._id || c.jobId,
           availability: 'Immediate',
           email: c.email,
           phone: c.phone
@@ -81,7 +91,11 @@ const CandidateListPage = () => {
 
   const filteredCandidates = candidates.filter(c => {
     // TC_CL_001
-    if (selectedJobRequisition && selectedJobRequisition !== 'All Roles' && c.job !== selectedJobRequisition) return false;
+    if (selectedJobRequisition && selectedJobRequisition !== 'All Roles') {
+      const matchTitle = c.job === selectedJobRequisition;
+      const matchId = String(c.jobId) === selectedJobRequisition;
+      if (!matchTitle && !matchId) return false;
+    }
 
     // TC_CL_004
     if (poolSearchQuery && !c.name.toLowerCase().includes(poolSearchQuery.toLowerCase()) && !c.title.toLowerCase().includes(poolSearchQuery.toLowerCase())) return false;
@@ -151,11 +165,6 @@ const CandidateListPage = () => {
     }
   };
 
-  const handleOpenInterview = (name) => {
-    setSelectedCandidateForInterview(name);
-    setInterviewModalOpen(true);
-  };
-
   const handleResetFilters = () => {
     setSearchQuery('');
     setPoolSearchQuery('');
@@ -171,14 +180,11 @@ const CandidateListPage = () => {
   };
 
   // ==========================================
-  // RECOMMENDATIONS STATE (Screenshot 1)
+  // RECOMMENDATIONS STATE
   // ==========================================
-  const [weights, setWeights] = useState({ experience: 40, skills: 40, culture: 20 });
-  const [promptText, setPromptText] = useState('');
-  const [isRegenerating, setIsRegenerating] = useState(false);
   const [shortlistedMap, setShortlistedMap] = useState({});
 
-  const topRecommendations = [...candidates]
+  const topRecommendations = [...filteredCandidates]
     .sort((a, b) => b.matchPct - a.matchPct)
     .slice(0, 3);
 
@@ -188,18 +194,6 @@ const CandidateListPage = () => {
       showToast(next ? 'Candidate added to AI Shortlist.' : 'Candidate removed from Shortlist.', 'info');
       return { ...prev, [id]: next };
     });
-  };
-
-  const handleAddTag = (tag) => {
-    setPromptText(prev => (prev ? `${prev} ${tag}` : tag));
-  };
-
-  const handleRegenerate = () => {
-    setIsRegenerating(true);
-    setTimeout(() => {
-      setIsRegenerating(false);
-      showToast('Neural rank engine successfully re-scored candidates based on natural language criteria!', 'success');
-    }, 1200);
   };
 
   return (
@@ -242,8 +236,11 @@ const CandidateListPage = () => {
             onChange={(e) => setSelectedJobRequisition(e.target.value)}
           >
             <option value="All Roles">All Roles</option>
-            <option value="Sr. Frontend Engineer (Req #FE-802)">Sr. Frontend Engineer (Req #FE-802)</option>
-            <option value="Cloud Architect (Req #CA-201)">Cloud Architect (Req #CA-201)</option>
+            {jobs.map((j) => (
+              <option key={j._id || j.id} value={j.title}>
+                {j.title}
+              </option>
+            ))}
           </select>
         </div>
       </div>
@@ -279,8 +276,8 @@ const CandidateListPage = () => {
             <div className="mini-stat-card">
               <span style={{ fontSize: '0.7rem', fontWeight: 700, color: '#64748b' }}>TOTAL SCREENED</span>
               <div className="stat-num-row">
-                <span className="stat-big-num">1,420</span>
-                <span className="stat-trend">↗ +18% vs. previous sprint</span>
+                <span className="stat-big-num">{candidates.length}</span>
+                <span className="stat-trend" style={{ color: '#059669' }}>● Live Candidate Pool</span>
               </div>
             </div>
 
@@ -288,10 +285,12 @@ const CandidateListPage = () => {
               <span style={{ fontSize: '0.7rem', fontWeight: 700, color: '#64748b' }}>AI SHORTLISTED</span>
               <div className="stat-num-row">
                 <span className="stat-big-num">{filteredCandidates.length}</span>
-                <span style={{ fontSize: '0.725rem', color: '#4f46e5', fontWeight: 700 }}>Top {((filteredCandidates.length / 1420) * 100).toFixed(1)}% of candidate pool</span>
+                <span style={{ fontSize: '0.725rem', color: '#4f46e5', fontWeight: 700 }}>
+                  {candidates.length > 0 ? `${Math.round((filteredCandidates.length / candidates.length) * 100)}% of candidate pool` : '0% of pool'}
+                </span>
               </div>
               <div className="bar-track" style={{ marginTop: 8 }}>
-                <div className="bar-fill" style={{ width: `${Math.min(((filteredCandidates.length / 1420) * 100) * 10, 100)}%` }} />
+                <div className="bar-fill" style={{ width: `${candidates.length > 0 ? Math.min((filteredCandidates.length / candidates.length) * 100, 100) : 0}%` }} />
               </div>
             </div>
 
@@ -638,93 +637,45 @@ const CandidateListPage = () => {
             </div>
           </div>
 
-          {/* Top Section: Weighting Card + 3 Stats */}
-          <div className="recommendations-top-grid">
-            <div className="weighting-card">
-              <div className="weighting-header">
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <div style={{ width: 28, height: 28, borderRadius: 8, background: '#f5f3ff', color: '#4f46e5', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <Sparkles size={16} />
-                  </div>
-                  <h3 style={{ fontSize: '0.95rem', fontWeight: 800, color: '#0f172a' }}>Vector Weighting Distribution</h3>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setWeightsModalOpen(true)}
-                  style={{ background: 'none', border: 'none', color: '#4f46e5', fontSize: '0.75rem', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }}
-                >
-                  <Sliders size={13} />
-                  <span>Customize Weights</span>
-                </button>
-              </div>
-
-              <div className="weight-split-bar">
-                <div className="bar-exp" style={{ width: `${weights.experience}%` }} />
-                <div className="bar-skills" style={{ width: `${weights.skills}%` }} />
-                <div className="bar-culture" style={{ width: `${weights.culture}%` }} />
-              </div>
-
-              <div className="weight-labels-row">
-                <div className="weight-item-dot">
-                  <span className="lbl" style={{ color: '#4f46e5' }}>● Experience</span>
-                  <span className="pct">{weights.experience}%</span>
-                </div>
-                <div className="weight-item-dot">
-                  <span className="lbl" style={{ color: '#3b82f6' }}>● Skills & Mastery</span>
-                  <span className="pct">{weights.skills}%</span>
-                </div>
-                <div className="weight-item-dot">
-                  <span className="lbl" style={{ color: '#10b981' }}>● Culture & Fit</span>
-                  <span className="pct">{weights.culture}%</span>
-                </div>
-              </div>
-
-              <div className="semantic-tokens-row">
-                <span style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 700, textTransform: 'uppercase' }}>Active Semantic Tokens:</span>
-                <span className="token-pill">📍 Next.js 14 App Router</span>
-                <span className="token-pill">💻 TypeScript Strict</span>
-                <span className="token-pill">📦 Micro-Frontends</span>
-                <span style={{ marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: 4, color: '#059669', fontSize: '0.7rem', fontWeight: 700 }}>
-                  <CheckCircle2 size={13} /> Triple Validated
-                </span>
-              </div>
-            </div>
-
+          {/* Top Section: Live Candidate Pool Stats */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 16, marginBottom: 24 }}>
             <div className="mini-stat-card">
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                <span style={{ fontSize: '0.7rem', fontWeight: 700, color: '#64748b' }}>SCREENED CVS</span>
+                <span style={{ fontSize: '0.7rem', fontWeight: 700, color: '#64748b' }}>ACTIVE CANDIDATES</span>
                 <div style={{ width: 32, height: 32, borderRadius: 8, background: '#eff6ff', color: '#3b82f6', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   <FileText size={16} />
                 </div>
               </div>
               <div className="stat-num-row">
-                <span className="stat-big-num">142</span>
-                <span className="stat-trend">↑+38 today</span>
+                <span className="stat-big-num">{filteredCandidates.length}</span>
+                <span className="stat-trend" style={{ color: '#059669' }}>● In Selected Role</span>
               </div>
             </div>
 
             <div className="mini-stat-card">
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                <span style={{ fontSize: '0.7rem', fontWeight: 700, color: '#64748b' }}>AI SHORTLISTED</span>
+                <span style={{ fontSize: '0.7rem', fontWeight: 700, color: '#64748b' }}>TOP RECOMMENDATIONS</span>
                 <div style={{ width: 32, height: 32, borderRadius: 8, background: '#eef2ff', color: '#4f46e5', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   <Award size={16} />
                 </div>
               </div>
               <div className="stat-num-row">
-                <span className="stat-big-num">5</span>
-                <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#4f46e5', background: '#eef2ff', padding: '2px 8px', borderRadius: 9999 }}>Top 3.5%</span>
+                <span className="stat-big-num">{topRecommendations.length}</span>
+                <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#4f46e5', background: '#eef2ff', padding: '2px 8px', borderRadius: 9999 }}>Ranked</span>
               </div>
             </div>
 
             <div className="mini-stat-card">
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                <span style={{ fontSize: '0.7rem', fontWeight: 700, color: '#64748b' }}>AVG TOP SCORE</span>
+                <span style={{ fontSize: '0.7rem', fontWeight: 700, color: '#64748b' }}>AVG MATCH SCORE</span>
                 <div style={{ width: 32, height: 32, borderRadius: 8, background: '#ecfdf5', color: '#10b981', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   <ShieldCheck size={16} />
                 </div>
               </div>
               <div className="stat-num-row">
-                <span className="stat-big-num">93.6%</span>
+                <span className="stat-big-num">
+                  {topRecommendations.length > 0 ? Math.round(topRecommendations.reduce((acc, c) => acc + c.matchPct, 0) / topRecommendations.length) : 0}%
+                </span>
                 <span style={{ fontSize: '0.725rem', fontWeight: 700, color: '#059669' }}>High Confidence</span>
               </div>
             </div>
@@ -819,19 +770,10 @@ const CandidateListPage = () => {
                       type="button"
                       className="rounded-lg bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-700 flex items-center justify-center gap-2"
                       style={{ flex: 1, height: 42, fontSize: '0.8125rem' }}
-                      onClick={() => handleOpenInterview(cand.name)}
-                    >
-                      <Calendar size={14} />
-                      <span>Invite</span>
-                    </button>
-                    <button
-                      type="button"
-                      className="rounded-lg border border-slate-200 bg-white p-2 text-sm font-semibold text-slate-600 transition hover:bg-slate-50 flex items-center justify-center"
-                      style={{ flex: 1, height: 42, fontSize: '0.8125rem' }}
                       onClick={() => navigate(`/candidates/${cand.id}`)}
                     >
                       <UserCheck size={14} />
-                      <span>Profile</span>
+                      <span>View Dossier Profile</span>
                     </button>
                     <button
                       type="button"
@@ -848,9 +790,9 @@ const CandidateListPage = () => {
             })}
           </div>
 
-          {/* Discrepancy Matrix & Refinement */}
-          <div className="matrix-refinement-grid">
-            <div className="matrix-card">
+          {/* Discrepancy Matrix */}
+          <div style={{ marginTop: 24 }}>
+            <div className="matrix-card" style={{ width: '100%' }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                   <div style={{ width: 28, height: 28, borderRadius: 8, background: '#f5f3ff', color: '#4f46e5', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -898,71 +840,9 @@ const CandidateListPage = () => {
                 </div>
               </div>
             </div>
-
-            <div className="refinement-card">
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
-                <Sparkles size={18} color="#4f46e5" />
-                <h3 style={{ fontSize: '0.95rem', fontWeight: 800, color: '#0f172a' }}>AI Matching Refinement</h3>
-              </div>
-              <p style={{ fontSize: '0.75rem', color: '#64748b', lineHeight: 1.45 }}>
-                Need more variations or specialized focus? Re-run neural matching with custom recruiter criteria in natural language.
-              </p>
-
-              <textarea
-                className="prompt-textarea"
-                placeholder="e.g. Prioritize candidates who have hands-on experience refactoring massive legacy codebases into server components and state machines..."
-                value={promptText}
-                onChange={e => setPromptText(e.target.value)}
-              />
-
-              <div style={{ display: 'flex', justifyContent: 'flex-end', fontSize: '0.6875rem', color: '#64748b', marginBottom: 8 }}>
-                <span>Prompt Optimizer: <strong style={{ color: '#10b981' }}>Active</strong></span>
-              </div>
-
-              <div className="quick-tags-row">
-                <button type="button" className="quick-tag-btn" onClick={() => handleAddTag('Prioritize Microfrontends')}>
-                  + Prioritize Microfrontends
-                </button>
-                <button type="button" className="quick-tag-btn" onClick={() => handleAddTag('Startup Leadership Exp')}>
-                  + Startup Leadership Exp
-                </button>
-                <button type="button" className="quick-tag-btn" onClick={() => handleAddTag('Sub-second LCP Focus')}>
-                  + Sub-second LCP Focus
-                </button>
-              </div>
-
-              <button
-                type="button"
-                className="rounded-lg bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-700 flex items-center justify-center gap-2"
-                style={{ marginTop: 'auto', height: 44 }}
-                onClick={handleRegenerate}
-                disabled={isRegenerating}
-              >
-                <RefreshCw size={15} className={isRegenerating ? 'spinner' : ''} />
-                <span>{isRegenerating ? 'Neural Rescoring...' : 'Regenerate Recommendations'}</span>
-              </button>
-            </div>
           </div>
         </div>
       )}
-
-      {/* Modals */}
-      <CustomizeWeightsModal
-        isOpen={weightsModalOpen}
-        onClose={() => setWeightsModalOpen(false)}
-        weights={weights}
-        onSaveWeights={(newWeights) => {
-          setWeights(newWeights);
-          showToast('Vector weights applied! Neural ranking rebalanced.', 'success');
-        }}
-      />
-
-      <ScheduleInterviewModal
-        isOpen={interviewModalOpen}
-        onClose={() => setInterviewModalOpen(false)}
-        candidateName={selectedCandidateForInterview}
-        onSuccess={(msg) => showToast(msg, 'success')}
-      />
     </div>
   );
 };
