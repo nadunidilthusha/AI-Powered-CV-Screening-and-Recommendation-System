@@ -88,9 +88,9 @@ const JobListPage = () => {
 
   return (
     <div>
-      <div className="mb-5 flex flex-wrap items-end justify-between gap-4">
+      <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end sm:justify-between sm:gap-4">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-slate-900">
+          <h1 className="text-xl font-bold tracking-tight text-slate-900 sm:text-2xl">
             Job postings
           </h1>
 
@@ -102,6 +102,7 @@ const JobListPage = () => {
         <Button
           icon={Plus}
           onClick={() => navigate(ROUTES.JOB_CREATE)}
+          className="w-full sm:w-auto"
         >
           Create job
         </Button>
@@ -149,7 +150,7 @@ const JobListPage = () => {
           onClick={() => !deleting && setPendingDelete(null)}
         >
           <div
-            className="w-full max-w-[400px] rounded-2xl bg-white p-6 shadow-2xl"
+            className="w-full max-h-[90vh] max-w-[400px] overflow-y-auto rounded-2xl bg-white p-5 shadow-2xl sm:p-6"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-lg bg-red-50 text-red-600">
@@ -168,7 +169,7 @@ const JobListPage = () => {
               and its screened candidates. This can&apos;t be undone.
             </p>
 
-            <div className="flex justify-end gap-2.5">
+            <div className="flex flex-col-reverse gap-2.5 sm:flex-row sm:justify-end">
               <Button
                 variant="secondary"
                 onClick={() => setPendingDelete(null)}
