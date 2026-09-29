@@ -10,7 +10,7 @@ const HrLayout = () => {
 
   return (
     <div className="flex min-h-screen bg-[#F6F8FC]">
-      <Sidebar role="hr_manager" />
+      <Sidebar role={user?.role ?? 'hr_manager'} />
       <div className="flex-1 flex flex-col">
         <Navbar
           pageTitle="Dashboard"

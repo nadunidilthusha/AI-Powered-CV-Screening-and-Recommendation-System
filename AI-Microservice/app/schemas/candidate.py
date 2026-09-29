@@ -9,12 +9,17 @@ class ExtractedCandidate(BaseModel):
     experience, technical skills, all pulled from the extracted PDF text.
     """
 
-    full_name: Optional[str] = None
-    email: Optional[str] = None
-    phone: Optional[str] = None
-    education: list[str] = Field(default_factory=list)
-    experience: list[str] = Field(default_factory=list)
-    skills: list[str] = Field(default_factory=list)
+    full_name: Optional[str] = Field(None, description="The candidate's full legal name")
+    email: Optional[str] = Field(None, description="The candidate's email address")
+    phone: Optional[str] = Field(None, description="The candidate's phone number")
+    education: list[str] = Field(default_factory=list, description="Degrees and academic institutions")
+    experience: list[str] = Field(default_factory=list, description="Work history entries including role, company, and duration")
+    skills: list[str] = Field(default_factory=list, description="Strictly technical skills mentioned (e.g., Python, React, SQL)")
+    
+    # NEW FIELDS TO CAPTURE YOUR FULL CV ACCURATELY:
+    projects: list[str] = Field(default_factory=list, description="Academic or professional projects (e.g., SmartKuppi)")
+    certifications: list[str] = Field(default_factory=list, description="Professional qualifications (e.g., MAAT, CA Sri Lanka)")
+    links: list[str] = Field(default_factory=list, description="URLs for LinkedIn, GitHub, or Portfolios")
 
 
 class EvaluationResult(BaseModel):

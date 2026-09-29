@@ -11,6 +11,9 @@ import FileSelector from '../../features/cv-upload/components/FileSelector';
 import UploadProgress from '../../features/cv-upload/components/UploadProgress';
 import FileValidationMessage from '../../features/cv-upload/components/FileValidationMessage';
 
+import jobService from '../../services/jobService';
+import cvService from '../../services/cvService';
+
 const MAX_FILE_SIZE = 5 * 1024 * 1024;
 
 const CvUploadPage = () => {
@@ -19,14 +22,59 @@ const CvUploadPage = () => {
   const [selectedJob, setSelectedJob] = useState('');
   const [selectedFiles, setSelectedFiles] = useState([]);
 
+  const [jobs, setJobs] = useState([]);
+  const [loadingJobs, setLoadingJobs] = useState(true);
+  const [jobsError, setJobsError] = useState('');
+  const [uploadError, setUploadError] = useState('');
+
   // select -> uploading -> validated
   const [stage, setStage] = useState('select');
+
+  /*
+    Load real job postings from the backend.
+    Only Active jobs are available for new CV uploads.
+  */
+  useEffect(() => {
+    const loadJobs = async () => {
+      try {
+        setLoadingJobs(true);
+        setJobsError('');
+
+        const response = await jobService.getJobs();
+
+        const fetchedJobs = Array.isArray(response?.data)
+          ? response.data
+          : Array.isArray(response?.data?.jobs)
+            ? response.data.jobs
+            : [];
+
+        const activeJobs = fetchedJobs.filter(
+          (job) => job.status === 'Active'
+        );
+
+        setJobs(activeJobs);
+      } catch (error) {
+        console.error('Failed to load jobs:', error);
+
+        setJobsError(
+          error.response?.data?.message ||
+            'Unable to load job postings.'
+        );
+      } finally {
+        setLoadingJobs(false);
+      }
+    };
+
+    loadJobs();
+  }, []);
 
   const handleFilesSelected = (files) => {
     setSelectedFiles((currentFiles) => [
       ...currentFiles,
       ...files,
     ]);
+
+    setUploadError('');
   };
 
   const handleRemoveFile = (indexToRemove) => {
@@ -42,22 +90,66 @@ const CvUploadPage = () => {
       file.type === 'application/pdf' ||
       file.name.toLowerCase().endsWith('.pdf');
 
-    const validSize =
-      file.size <= MAX_FILE_SIZE;
+    const validSize = file.size <= MAX_FILE_SIZE;
 
     return isPdf && validSize;
   };
 
-  const validFiles =
-    selectedFiles.filter(isValidFile);
+  const validFiles = selectedFiles.filter(isValidFile);
 
-  const invalidFiles =
-    selectedFiles.filter(
-      (file) => !isValidFile(file)
-    );
+  const invalidFiles = selectedFiles.filter(
+    (file) => !isValidFile(file)
+  );
 
-  const handleUpload = () => {
-    setStage('uploading');
+  /*
+    Real CV upload.
+
+    The selectedJob value is the real MongoDB Job _id.
+    All valid files are sent using the "cvs" multipart field,
+    which matches the backend multer configuration.
+  */
+  const handleUpload = async () => {
+    if (
+      !selectedJob ||
+      validFiles.length === 0 ||
+      invalidFiles.length > 0
+    ) {
+      return;
+    }
+
+    try {
+      setUploadError('');
+      setStage('uploading');
+
+      const formData = new FormData();
+
+      validFiles.forEach((file) => {
+        formData.append('cvs', file);
+      });
+
+      const response = await cvService.uploadCvs(
+        selectedJob,
+        formData
+      );
+
+      if (!response?.data?.success) {
+        throw new Error(
+          response?.data?.message || 'CV upload failed.'
+        );
+      }
+
+      setStage('validated');
+    } catch (error) {
+      console.error('CV upload failed:', error);
+
+      setUploadError(
+        error.response?.data?.message ||
+          error.message ||
+          'Unable to upload CVs. Please try again.'
+      );
+
+      setStage('select');
+    }
   };
 
   const handleBackToFiles = () => {
@@ -68,24 +160,12 @@ const CvUploadPage = () => {
     navigate('/candidates');
   };
 
-  /*
-    Temporary frontend simulation:
-    After showing upload progress for 2.5 seconds,
-    move to Validation Complete.
+  const selectedJobData = jobs.find(
+    (job) => String(job._id) === String(selectedJob)
+  );
 
-    Later this can be replaced with the real backend/API response.
-  */
-  useEffect(() => {
-    if (stage !== 'uploading') {
-      return undefined;
-    }
-
-    const timer = setTimeout(() => {
-      setStage('validated');
-    }, 2500);
-
-    return () => clearTimeout(timer);
-  }, [stage]);
+  const selectedJobName =
+    selectedJobData?.title || 'Not selected';
 
   return (
     <div className="space-y-5">
@@ -98,18 +178,16 @@ const CvUploadPage = () => {
         </h1>
 
         <p className="mt-1 text-sm text-slate-500">
-          Upload candidate resumes and match them
-          against a selected job posting.
+          Upload candidate resumes and match them against a
+          selected job posting.
         </p>
       </div>
 
       <div className="grid grid-cols-1 gap-5 xl:grid-cols-[1fr_320px]">
-
         {/* =========================
             MAIN CONTENT
         ========================== */}
         <section className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
-
           {/* =========================
               STAGE 1:
               FILE SELECTION
@@ -122,10 +200,23 @@ const CvUploadPage = () => {
                 </h2>
 
                 <p className="mt-1 text-xs text-slate-400">
-                  Choose a job posting, then add one
-                  or more PDF resumes for AI screening.
+                  Choose a job posting, then add one or more PDF
+                  resumes for AI screening.
                 </p>
               </div>
+
+              {/* Errors */}
+              {jobsError && (
+                <div className="mt-5 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                  {jobsError}
+                </div>
+              )}
+
+              {uploadError && (
+                <div className="mt-5 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                  {uploadError}
+                </div>
+              )}
 
               {/* Job Selector */}
               <div className="mt-6">
@@ -140,36 +231,40 @@ const CvUploadPage = () => {
                   id="jobPosting"
                   value={selectedJob}
                   onChange={(event) =>
-                    setSelectedJob(
-                      event.target.value
-                    )
+                    setSelectedJob(event.target.value)
                   }
-                  className="w-full rounded-lg border border-slate-200 bg-white px-3 py-3 text-sm text-slate-700 outline-none transition focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
+                  disabled={loadingJobs}
+                  className="w-full rounded-lg border border-slate-200 bg-white px-3 py-3 text-sm text-slate-700 outline-none transition focus:border-blue-400 focus:ring-2 focus:ring-blue-100 disabled:cursor-not-allowed disabled:bg-slate-50"
                 >
                   <option value="">
-                    Choose a job posting
+                    {loadingJobs
+                      ? 'Loading job postings...'
+                      : 'Choose a job posting'}
                   </option>
 
-                  <option value="software-engineer">
-                    Software Engineer
-                  </option>
-
-                  <option value="data-analyst">
-                    Data Analyst
-                  </option>
-
-                  <option value="ui-ux-designer">
-                    UI/UX Designer
-                  </option>
-
-                  <option value="qa-engineer">
-                    QA Engineer
-                  </option>
+                  {!loadingJobs &&
+                    jobs.map((job) => (
+                      <option
+                        key={job._id}
+                        value={job._id}
+                      >
+                        {job.title}
+                      </option>
+                    ))}
                 </select>
 
+                {!loadingJobs &&
+                  !jobsError &&
+                  jobs.length === 0 && (
+                    <p className="mt-2 text-xs text-amber-600">
+                      No active job postings are currently
+                      available.
+                    </p>
+                  )}
+
                 <p className="mt-2 text-xs text-slate-400">
-                  Uploaded CVs will be evaluated
-                  against the selected job description.
+                  Uploaded CVs will be evaluated against the
+                  selected job description.
                 </p>
               </div>
 
@@ -177,9 +272,7 @@ const CvUploadPage = () => {
               {selectedFiles.length === 0 && (
                 <div className="mt-6">
                   <DropZone
-                    onFilesSelected={
-                      handleFilesSelected
-                    }
+                    onFilesSelected={handleFilesSelected}
                   />
                 </div>
               )}
@@ -189,12 +282,8 @@ const CvUploadPage = () => {
                 <div className="mt-6">
                   <FileSelector
                     files={selectedFiles}
-                    onRemoveFile={
-                      handleRemoveFile
-                    }
-                    onAddFiles={
-                      handleFilesSelected
-                    }
+                    onRemoveFile={handleRemoveFile}
+                    onAddFiles={handleFilesSelected}
                   />
                 </div>
               )}
@@ -238,9 +327,10 @@ const CvUploadPage = () => {
               <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
                 <button
                   type="button"
-                  onClick={() =>
-                    setSelectedFiles([])
-                  }
+                  onClick={() => {
+                    setSelectedFiles([]);
+                    setUploadError('');
+                  }}
                   className="rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-600 transition hover:bg-slate-50"
                 >
                   Cancel
@@ -257,8 +347,7 @@ const CvUploadPage = () => {
                     }
                     className="rounded-lg bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white transition enabled:hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-400"
                   >
-                    Upload{' '}
-                    {selectedFiles.length}{' '}
+                    Upload {selectedFiles.length}{' '}
                     {selectedFiles.length === 1
                       ? 'CV'
                       : 'CVs'}
@@ -289,9 +378,8 @@ const CvUploadPage = () => {
                   </h2>
 
                   <p className="mt-1 text-xs text-slate-400">
-                    Your CV files are being
-                    uploaded and prepared for
-                    validation.
+                    Your CV files are being uploaded and prepared
+                    for processing.
                   </p>
                 </div>
 
@@ -301,15 +389,13 @@ const CvUploadPage = () => {
                   </p>
 
                   <p className="mt-0.5 text-sm font-semibold text-blue-700">
-                    {getJobName(selectedJob)}
+                    {selectedJobName}
                   </p>
                 </div>
               </div>
 
               <div className="mt-6">
-                <UploadProgress
-                  files={selectedFiles}
-                />
+                <UploadProgress files={selectedFiles} />
               </div>
             </>
           )}
@@ -327,8 +413,8 @@ const CvUploadPage = () => {
                   </h2>
 
                   <p className="mt-1 text-xs text-slate-400">
-                    Review validation results
-                    before starting AI screening.
+                    The CV files were uploaded successfully and
+                    have been submitted for AI processing.
                   </p>
                 </div>
 
@@ -338,22 +424,16 @@ const CvUploadPage = () => {
                   </p>
 
                   <p className="mt-0.5 text-sm font-semibold text-green-700">
-                    {getJobName(selectedJob)}
+                    {selectedJobName}
                   </p>
                 </div>
               </div>
 
               <div className="mt-6">
                 <FileValidationMessage
-                  totalFiles={
-                    selectedFiles.length
-                  }
-                  validFiles={
-                    validFiles.length
-                  }
-                  invalidFiles={
-                    invalidFiles.length
-                  }
+                  totalFiles={selectedFiles.length}
+                  validFiles={validFiles.length}
+                  invalidFiles={invalidFiles.length}
                 />
               </div>
 
@@ -369,16 +449,14 @@ const CvUploadPage = () => {
 
                 <button
                   type="button"
-                  onClick={
-                    handleStartScreening
-                  }
+                  onClick={handleStartScreening}
                   disabled={
                     invalidFiles.length > 0 ||
                     validFiles.length === 0
                   }
                   className="rounded-lg bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white transition enabled:hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-400"
                 >
-                  Start AI Screening
+                  View Candidates
                 </button>
               </div>
             </>
@@ -389,7 +467,6 @@ const CvUploadPage = () => {
             RIGHT SIDE INFORMATION
         ========================== */}
         <aside className="space-y-4">
-
           {/* Before Upload */}
           <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
             <div className="flex items-center gap-3">
@@ -404,24 +481,21 @@ const CvUploadPage = () => {
 
             <div className="mt-5 space-y-4">
               <InfoItem>
-                Select the correct job posting
-                so each CV can be compared with
-                the relevant job description.
+                Select the correct job posting so each CV can be
+                compared with the relevant job description.
               </InfoItem>
 
               <InfoItem>
-                Upload resumes in PDF format
-                only.
+                Upload resumes in PDF format only.
               </InfoItem>
 
               <InfoItem>
-                Keep each individual file within
-                the 5 MB size limit.
+                Keep each individual file within the 5 MB size
+                limit.
               </InfoItem>
 
               <InfoItem>
-                You can select multiple
-                candidate CVs for bulk
+                You can select multiple candidate CVs for bulk
                 screening.
               </InfoItem>
             </div>
@@ -460,8 +534,8 @@ const CvUploadPage = () => {
 
               <WorkflowItem
                 number="4"
-                title="Start AI screening"
-                description="Valid CVs proceed to extraction, matching and recommendation."
+                title="AI screening"
+                description="Valid CVs are submitted for extraction, matching and recommendation."
               />
             </div>
           </section>
@@ -469,21 +543,6 @@ const CvUploadPage = () => {
       </div>
     </div>
   );
-};
-
-const getJobName = (jobValue) => {
-  const jobs = {
-    'software-engineer':
-      'Software Engineer',
-    'data-analyst':
-      'Data Analyst',
-    'ui-ux-designer':
-      'UI/UX Designer',
-    'qa-engineer':
-      'QA Engineer',
-  };
-
-  return jobs[jobValue] || 'Not selected';
 };
 
 const InfoItem = ({ children }) => {

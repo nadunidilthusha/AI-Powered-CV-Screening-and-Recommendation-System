@@ -1,38 +1,3 @@
-const processingJobs = [
-  {
-    job: 'Software Engineer',
-    subtitle: '25 CVs uploaded',
-    processed: 18,
-    total: 25,
-    status: 'Processing',
-    progress: 72,
-  },
-  {
-    job: 'Data Analyst',
-    subtitle: '15 CVs uploaded',
-    processed: 15,
-    total: 15,
-    status: 'Completed',
-    progress: 100,
-  },
-  {
-    job: 'UI/UX Designer',
-    subtitle: '20 CVs uploaded',
-    processed: 6,
-    total: 20,
-    status: 'Processing',
-    progress: 30,
-  },
-  {
-    job: 'QA Engineer',
-    subtitle: '10 CVs queued',
-    processed: 0,
-    total: 10,
-    status: 'Pending',
-    progress: 0,
-  },
-];
-
 const getStatusClasses = (status) => {
   switch (status) {
     case 'Completed':
@@ -43,6 +8,9 @@ const getStatusClasses = (status) => {
 
     case 'Pending':
       return 'bg-slate-100 text-slate-600';
+
+    case 'Failed':
+      return 'bg-red-100 text-red-700';
 
     default:
       return 'bg-slate-100 text-slate-600';
@@ -58,10 +26,18 @@ const getProgressColor = (status) => {
     return 'bg-blue-600';
   }
 
+  if (status === 'Failed') {
+    return 'bg-red-500';
+  }
+
   return 'bg-slate-300';
 };
 
-const ProcessingStatusWidget = () => {
+const ProcessingStatusWidget = ({ jobs = [] }) => {
+  const jobsWithCvs = jobs.filter(
+    (item) => (item.totalCandidates ?? 0) > 0
+  );
+
   return (
     <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
       {/* Header */}
@@ -77,53 +53,69 @@ const ProcessingStatusWidget = () => {
 
       {/* Processing rows */}
       <div className="mt-6 divide-y divide-slate-100">
-        {processingJobs.map((item) => (
-          <div
-            key={item.job}
-            className="grid grid-cols-1 gap-3 py-5 md:grid-cols-[220px_1fr_auto_auto] md:items-center md:gap-5"
-          >
-            {/* Job */}
-            <div>
-              <p className="text-sm font-semibold text-slate-700">
-                {item.job}
-              </p>
-
-              <p className="mt-1 text-xs text-slate-400">
-                {item.subtitle}
-              </p>
-            </div>
-
-            {/* Progress */}
-            <div className="w-full">
-              <div className="h-2 w-full overflow-hidden rounded-full bg-slate-100">
-                <div
-                  className={`h-full rounded-full ${getProgressColor(
-                    item.status
-                  )}`}
-                  style={{
-                    width: `${item.progress}%`,
-                  }}
-                />
-              </div>
-            </div>
-
-            {/* Count */}
-            <div className="text-xs text-slate-500 md:min-w-[50px] md:text-right">
-              {item.processed}/{item.total}
-            </div>
-
-            {/* Status */}
-            <div className="md:min-w-[90px]">
-              <span
-                className={`inline-flex rounded-full px-3 py-1 text-[11px] font-semibold ${getStatusClasses(
-                  item.status
-                )}`}
-              >
-                {item.status}
-              </span>
-            </div>
+        {jobsWithCvs.length === 0 ? (
+          <div className="py-8 text-center text-sm text-slate-400">
+            No CV processing activity available.
           </div>
-        ))}
+        ) : (
+          jobsWithCvs.map((item) => {
+            const total = item.totalCandidates ?? 0;
+            const processed = item.processedCandidates ?? 0;
+            const progress = item.progressPercentage ?? 0;
+            const status = item.status ?? 'Pending';
+
+            return (
+              <div
+                key={item.jobId}
+                className="grid grid-cols-1 gap-3 py-5 md:grid-cols-[220px_1fr_auto_auto] md:items-center md:gap-5"
+              >
+                {/* Job */}
+                <div>
+                  <p className="text-sm font-semibold text-slate-700">
+                    {item.jobTitle || 'Untitled Job'}
+                  </p>
+
+                  <p className="mt-1 text-xs text-slate-400">
+                    {total} {total === 1 ? 'CV' : 'CVs'} uploaded
+                  </p>
+                </div>
+
+                {/* Progress */}
+                <div className="w-full">
+                  <div className="h-2 w-full overflow-hidden rounded-full bg-slate-100">
+                    <div
+                      className={`h-full rounded-full transition-all duration-300 ${getProgressColor(
+                        status
+                      )}`}
+                      style={{
+                        width: `${Math.min(
+                          100,
+                          Math.max(0, progress)
+                        )}%`,
+                      }}
+                    />
+                  </div>
+                </div>
+
+                {/* Count */}
+                <div className="text-xs text-slate-500 md:min-w-[50px] md:text-right">
+                  {processed}/{total}
+                </div>
+
+                {/* Status */}
+                <div className="md:min-w-[90px]">
+                  <span
+                    className={`inline-flex rounded-full px-3 py-1 text-[11px] font-semibold ${getStatusClasses(
+                      status
+                    )}`}
+                  >
+                    {status}
+                  </span>
+                </div>
+              </div>
+            );
+          })
+        )}
       </div>
     </section>
   );
