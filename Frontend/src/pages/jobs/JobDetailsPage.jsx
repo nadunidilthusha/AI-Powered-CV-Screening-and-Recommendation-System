@@ -129,7 +129,7 @@ const JobDetailsPage = () => {
           onClick={() => !deleting && setShowDeleteModal(false)}
         >
           <div
-            className="w-full max-w-[400px] rounded-2xl bg-white p-6 shadow-2xl"
+            className="w-full max-h-[90vh] max-w-[400px] overflow-y-auto rounded-2xl bg-white p-5 shadow-2xl sm:p-6"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-lg bg-red-50 text-red-600">
@@ -148,7 +148,7 @@ const JobDetailsPage = () => {
               and its screened candidates. This can&apos;t be undone.
             </p>
 
-            <div className="flex justify-end gap-2.5">
+            <div className="flex flex-col-reverse gap-2.5 sm:flex-row sm:justify-end">
               <Button
                 variant="secondary"
                 onClick={() => setShowDeleteModal(false)}
