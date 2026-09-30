@@ -271,13 +271,12 @@ const CandidateListPage = () => {
   return (
     <div className="page-wrapper">
       {/* Top Tab Switcher */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20, borderBottom: '1px solid #e2e8f0', paddingBottom: 10, flexWrap: 'wrap', gap: 12 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+      <div className="candidate-tabs-header">
+        <div className="candidate-tabs-pills">
           <button
             type="button"
             className={`dossier-tab-btn ${activeTab === 'pipeline' ? 'active' : ''}`}
             onClick={() => setActiveTab('pipeline')}
-            style={{ display: 'flex', alignItems: 'center', gap: 6 }}
           >
             <span>Candidate Pipeline</span>
             <span style={{ fontSize: '0.7rem', padding: '2px 7px', borderRadius: 9999, background: activeTab === 'pipeline' ? 'rgba(255,255,255,0.25)' : '#e2e8f0', color: activeTab === 'pipeline' ? '#ffffff' : '#475569' }}>
@@ -289,7 +288,6 @@ const CandidateListPage = () => {
             type="button"
             className={`dossier-tab-btn ${activeTab === 'recommendations' ? 'active' : ''}`}
             onClick={() => setActiveTab('recommendations')}
-            style={{ display: 'flex', alignItems: 'center', gap: 6 }}
           >
             <Sparkles size={14} />
             <span>AI Recommendations</span>
@@ -303,7 +301,7 @@ const CandidateListPage = () => {
         <div className="job-position-selector">
           <select 
             className="job-selector-btn" 
-            style={{ padding: '6px 12px', appearance: 'none', background: 'transparent', border: 'none', outline: 'none', cursor: 'pointer', color: '#0f172a', fontWeight: 600, fontSize: '0.85rem' }}
+            style={{ padding: '6px 12px', appearance: 'none', background: 'transparent', border: 'none', outline: 'none', cursor: 'pointer', color: '#0f172a', fontWeight: 600, fontSize: '0.85rem', width: '100%' }}
             value={selectedJobRequisition}
             onChange={(e) => setSelectedJobRequisition(e.target.value)}
           >
@@ -325,7 +323,7 @@ const CandidateListPage = () => {
           {/* Header Row */}
           <div className="page-title-row" style={{ marginBottom: 20 }}>
             <div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
                 <h1 className="text-2xl font-bold tracking-tight text-slate-900">Candidate Pipeline</h1>
                 <span style={{ background: '#ecfdf5', color: '#059669', fontSize: '0.725rem', fontWeight: 700, padding: '4px 10px', borderRadius: 9999, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
                   <Sparkles size={12} /> AI Model v4.2 Active
@@ -519,9 +517,9 @@ const CandidateListPage = () => {
 
             {/* Right Candidate Table Card */}
             <div className="pipeline-table-card">
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12, paddingBottom: 14, borderBottom: '1px solid #f1f5f9' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                  <div className="input-wrapper" style={{ width: 240 }}>
+              <div className="pool-search-bar-row">
+                <div className="pool-search-input-group">
+                  <div className="input-wrapper" style={{ flex: 1, minWidth: 0 }}>
                     <span className="input-icon" style={{ left: 10 }}>
                       <Search size={14} />
                     </span>
@@ -534,10 +532,10 @@ const CandidateListPage = () => {
                       onChange={(e) => setPoolSearchQuery(e.target.value)}
                     />
                   </div>
-                  <span style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600 }}>{filteredCandidates.length} Results</span>
+                  <span style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600, whiteSpace: 'nowrap' }}>{filteredCandidates.length} Results</span>
                 </div>
 
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <div className="pool-sort-actions">
                   <span style={{ fontSize: '0.75rem', color: '#64748b' }}>Sort:</span>
                   <select 
                     className="job-selector-btn" 
@@ -551,7 +549,7 @@ const CandidateListPage = () => {
                   </select>
                   <button
                     type="button"
-                    className="rounded-lg border border-slate-200 bg-white p-2 text-sm font-semibold text-slate-600 transition hover:bg-slate-50 flex items-center justify-center"
+                    className="rounded-lg border border-slate-200 bg-white p-2 text-sm font-semibold text-slate-600 transition hover:bg-slate-50 flex items-center justify-center flex-shrink-0"
                     onClick={handleExportCsv}
                     title="Export CSV (REQ-5.4)"
                   >
@@ -915,14 +913,14 @@ const CandidateListPage = () => {
           {/* Discrepancy Matrix */}
           <div style={{ marginTop: 24 }}>
             <div className="matrix-card" style={{ width: '100%' }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div className="matrix-card-header">
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <div style={{ width: 28, height: 28, borderRadius: 8, background: '#f5f3ff', color: '#4f46e5', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <div style={{ width: 28, height: 28, borderRadius: 8, background: '#f5f3ff', color: '#4f46e5', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                     <Sparkles size={16} />
                   </div>
                   <h3 style={{ fontSize: '0.95rem', fontWeight: 800, color: '#0f172a' }}>Neural Vector Discrepancy Matrix</h3>
                 </div>
-                <span style={{ fontSize: '0.7rem', fontWeight: 700, color: '#059669', background: '#ecfdf5', padding: '3px 8px', borderRadius: 9999 }}>
+                <span style={{ fontSize: '0.7rem', fontWeight: 700, color: '#059669', background: '#ecfdf5', padding: '3px 8px', borderRadius: 9999, whiteSpace: 'nowrap' }}>
                   ● Deterministic Match
                 </span>
               </div>

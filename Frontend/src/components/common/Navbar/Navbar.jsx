@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Search, ChevronDown, LayoutDashboard, Briefcase, Upload, Users,
-  LineChart, Settings, UserCog, Wrench, Activity, Database,
+  LineChart, Settings, UserCog, Wrench, Activity, Database, Menu,
 } from 'lucide-react';
 import { ROUTES } from '../../../routes/routePaths';
 
@@ -27,6 +27,7 @@ const ADMIN_ITEMS = [
 const Navbar = ({
   searchPlaceholder = 'Search...',
   user = { name: 'User', role: 'Member', initials: 'U', avatarUrl: null },
+  onToggleSidebar,
 }) => {
   const [menuOpen, setMenuOpen] = useState(false);
   const [query, setQuery] = useState('');
@@ -52,41 +53,53 @@ const Navbar = ({
   };
 
   return (
-    <header className="border-b border-slate-200 bg-white">
-      <div className="flex items-center justify-between px-6 py-3">
-        <div className="relative w-full max-w-md">
-          <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-          <input
-            type="text"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder={searchPlaceholder}
-            className="w-full pl-9 pr-3 py-2 text-sm rounded-lg border border-slate-200 bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white"
-          />
-
-          {showDropdown && (
-            <>
-              <div className="fixed inset-0 z-0" onClick={() => setQuery('')} />
-              <div className="absolute left-0 right-0 top-full mt-2 bg-white border border-slate-200 rounded-lg shadow-lg py-1 z-10 max-h-72 overflow-y-auto">
-                {results.length === 0 ? (
-                  <p className="px-3 py-3 text-sm text-slate-400">No sections match "{query}"</p>
-                ) : (
-                  results.map((item) => (
-                    <button
-                      key={item.label}
-                      onClick={() => goTo(item)}
-                      className="w-full flex items-center gap-3 text-left px-3 py-2.5 hover:bg-slate-50"
-                    >
-                      <div className="flex h-8 w-8 items-center justify-center rounded-md bg-blue-50 text-blue-600 flex-shrink-0">
-                        <item.icon size={15} />
-                      </div>
-                      <p className="text-sm font-medium text-slate-800">{item.label}</p>
-                    </button>
-                  ))
-                )}
-              </div>
-            </>
+    <header className="border-b border-slate-200 bg-white sticky top-0 z-20">
+      <div className="flex items-center justify-between px-3 sm:px-6 py-2.5 sm:py-3 gap-2">
+        <div className="flex items-center gap-2 flex-1 max-w-md">
+          {onToggleSidebar && (
+            <button
+              type="button"
+              onClick={onToggleSidebar}
+              className="p-1.5 sm:p-2 -ml-1 rounded-lg text-slate-600 hover:text-slate-900 hover:bg-slate-100 md:hidden flex-shrink-0 cursor-pointer"
+              aria-label="Toggle navigation menu"
+            >
+              <Menu size={20} />
+            </button>
           )}
+          <div className="relative w-full">
+            <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+            <input
+              type="text"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder={searchPlaceholder}
+              className="w-full pl-9 pr-3 py-2 text-sm rounded-lg border border-slate-200 bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white"
+            />
+
+            {showDropdown && (
+              <>
+                <div className="fixed inset-0 z-0" onClick={() => setQuery('')} />
+                <div className="absolute left-0 right-0 top-full mt-2 bg-white border border-slate-200 rounded-lg shadow-lg py-1 z-10 max-h-72 overflow-y-auto">
+                  {results.length === 0 ? (
+                    <p className="px-3 py-3 text-sm text-slate-400">No sections match "{query}"</p>
+                  ) : (
+                    results.map((item) => (
+                      <button
+                        key={item.label}
+                        onClick={() => goTo(item)}
+                        className="w-full flex items-center gap-3 text-left px-3 py-2.5 hover:bg-slate-50"
+                      >
+                        <div className="flex h-8 w-8 items-center justify-center rounded-md bg-blue-50 text-blue-600 flex-shrink-0">
+                          <item.icon size={15} />
+                        </div>
+                        <p className="text-sm font-medium text-slate-800">{item.label}</p>
+                      </button>
+                    ))
+                  )}
+                </div>
+              </>
+            )}
+          </div>
         </div>
 
         <div className="relative">
