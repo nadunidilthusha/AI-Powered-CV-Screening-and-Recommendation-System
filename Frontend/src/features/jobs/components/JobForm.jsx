@@ -137,7 +137,7 @@ const JobForm = ({ initialData = null, onSubmit, onCancel, submitLabel = 'Save j
               value={salaryMin}
               onChange={(e) => setSalaryMin(e.target.value)}
               placeholder="Min"
-              className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm outline-none focus:border-blue-600 focus:bg-white focus:ring-2 focus:ring-blue-100"
+              className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-base outline-none focus:border-blue-600 sm:text-sm focus:bg-white focus:ring-2 focus:ring-blue-100"
             />
             <span className="text-slate-400">—</span>
             <input
@@ -145,7 +145,7 @@ const JobForm = ({ initialData = null, onSubmit, onCancel, submitLabel = 'Save j
               value={salaryMax}
               onChange={(e) => setSalaryMax(e.target.value)}
               placeholder="Max"
-              className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm outline-none focus:border-blue-600 focus:bg-white focus:ring-2 focus:ring-blue-100"
+              className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-base outline-none focus:border-blue-600 sm:text-sm focus:bg-white focus:ring-2 focus:ring-blue-100"
             />
           </div>
         </div>
@@ -173,7 +173,7 @@ const JobForm = ({ initialData = null, onSubmit, onCancel, submitLabel = 'Save j
               onChange={(e) => setSkillDraft(e.target.value)}
               onKeyDown={addSkill}
               placeholder="Type a skill and press Enter…"
-              className="min-w-[140px] flex-1 bg-transparent p-1 text-sm outline-none"
+              className="min-w-[120px] flex-1 bg-transparent p-1 text-sm outline-none"
             />
           </div>
         </div>
@@ -192,13 +192,13 @@ const JobForm = ({ initialData = null, onSubmit, onCancel, submitLabel = 'Save j
         {/* Status toggle */}
         <div className="md:col-span-2">
           <label className="mb-1.5 block text-xs font-semibold text-slate-800">Status</label>
-          <div className="flex gap-2">
+          <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
             {STATUS_OPTIONS.map((opt) => (
               <button
                 key={opt.value}
                 type="button"
                 onClick={() => setStatus(opt.value)}
-                className={`flex-1 rounded-lg border-[1.5px] px-3.5 py-2.5 text-center text-sm font-semibold transition-colors ${
+                className={`rounded-lg border-[1.5px] px-3.5 py-2.5 text-center text-sm font-semibold transition-colors ${
                   status === opt.value ? STATUS_SELECTED_CLASSES[opt.value] : 'border-slate-200 bg-white text-slate-500'
                 }`}
               >
@@ -216,13 +216,13 @@ const JobForm = ({ initialData = null, onSubmit, onCancel, submitLabel = 'Save j
         </div>
       )}
 
-      <div className="mt-6 flex justify-end gap-3 border-t border-slate-200 pt-4">
+      <div className="mt-6 flex flex-col-reverse gap-3 border-t border-slate-200 pt-4 sm:flex-row sm:justify-end">
         {onCancel && (
-          <Button type="button" variant="secondary" onClick={onCancel}>
+          <Button type="button" variant="secondary" onClick={onCancel} className="w-full sm:w-auto">
             Cancel
           </Button>
         )}
-        <Button type="submit" icon={Save} loading={loading}>
+        <Button type="submit" icon={Save} loading={loading} className="w-full sm:w-auto">
           {submitLabel}
         </Button>
       </div>

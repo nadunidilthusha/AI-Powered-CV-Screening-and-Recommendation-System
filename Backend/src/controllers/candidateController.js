@@ -7,7 +7,9 @@ const ApiError = require('../utils/ApiError');
 const getCandidatesForJob = asyncHandler(async (req, res) => {
   const { jobId } = req.params;
   const filter = (jobId && jobId !== 'all') ? { jobId } : {};
-  const candidates = await Candidate.find(filter).sort({ 'aiEvaluation.matchPercentage': -1 });
+  const candidates = await Candidate.find(filter)
+    .populate('jobId', 'title department')
+    .sort({ 'aiEvaluation.matchPercentage': -1 });
   res.success(candidates, 'Candidates retrieved successfully');
 });
 
@@ -15,7 +17,7 @@ const getCandidatesForJob = asyncHandler(async (req, res) => {
 // @access Private
 const getCandidateById = asyncHandler(async (req, res) => {
   const { id } = req.params;
-  const candidate = await Candidate.findById(id);
+  const candidate = await Candidate.findById(id).populate('jobId', 'title department');
   if (!candidate) throw new ApiError(404, 'Candidate not found');
   res.success(candidate, 'Candidate details retrieved successfully');
 });
@@ -29,5 +31,34 @@ const getAIRecommendation = asyncHandler(async (req, res) => {
   res.success(candidate.aiEvaluation, 'AI recommendation retrieved successfully');
 });
 
-module.exports = { getCandidatesForJob, getCandidateById, getAIRecommendation };
+// @route  DELETE /api/candidates/:id
+// @access Private
+const deleteCandidate = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const candidate = await Candidate.findById(id);
+  if (!candidate) throw new ApiError(404, 'Candidate not found');
+
+  if (candidate.cvUrl) {
+    const fs = require('fs');
+    const path = require('path');
+    const filePath = path.join(__dirname, '../../', candidate.cvUrl);
+    if (fs.existsSync(filePath)) {
+      try {
+        fs.unlinkSync(filePath);
+      } catch (err) {
+        console.error('Error removing CV file:', err);
+      }
+    }
+  }
+
+  await Candidate.findByIdAndDelete(id);
+  res.success({ id }, 'Candidate deleted successfully');
+});
+
+module.exports = {
+  getCandidatesForJob,
+  getCandidateById,
+  getAIRecommendation,
+  deleteCandidate,
+};
 

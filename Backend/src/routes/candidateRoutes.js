@@ -2,8 +2,10 @@ const express = require('express');
 const {
   getCandidateById,
   getAIRecommendation,
+  deleteCandidate,
 } = require('../controllers/candidateController');
 const { protect } = require('../middleware/authMiddleware');
+const { allowRoles } = require('../middleware/roleMiddleware');
 
 const router = express.Router();
 
@@ -14,5 +16,6 @@ router.use(protect);
 // address a candidate directly by its own id.
 router.get('/:id', getCandidateById);
 router.get('/:id/recommendation', getAIRecommendation);
+router.delete('/:id', allowRoles('hr_manager', 'admin'), deleteCandidate);
 
 module.exports = router;

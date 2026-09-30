@@ -6,11 +6,11 @@ import {
   Search, UploadCloud, Download, Filter, 
   ChevronDown, Sparkles, Sliders, CheckCircle2, Calendar, 
   UserCheck, Scale, RefreshCw, Send, ShieldCheck, FileText, 
-  Award, Check, ExternalLink, Layers 
+  Award, Check, ExternalLink, Layers, Trash2 
 } from 'lucide-react';
-import ScheduleInterviewModal from '../../components/modals/ScheduleInterviewModal';
-import CustomizeWeightsModal from '../../components/modals/CustomizeWeightsModal';
 import candidateService from '../../services/candidateService';
+import jobService from '../../services/jobService';
+import DeleteCandidateModal from '../../components/modals/DeleteCandidateModal';
 import '../../styles/pages.css';
 
 // Normalises a value that may be a string ("React, Node") or an array
@@ -34,10 +34,8 @@ const CandidateListPage = () => {
   // Active Tab: 'pipeline' | 'recommendations'
   const [activeTab, setActiveTab] = useState('pipeline');
 
-  // Shared Modals
-  const [interviewModalOpen, setInterviewModalOpen] = useState(false);
-  const [selectedCandidateForInterview, setSelectedCandidateForInterview] = useState('Dishan Perera');
-  const [weightsModalOpen, setWeightsModalOpen] = useState(false);
+  // Dynamic Jobs from backend
+  const [jobs, setJobs] = useState([]);
 
   // ==========================================
   // PIPELINE STATE (Screenshot 2)
@@ -58,6 +56,34 @@ const CandidateListPage = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [candidates, setCandidates] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [isMobileFilterOpen, setIsMobileFilterOpen] = useState(false);
+
+  // Delete Candidate Modal State
+  const [candidateToDelete, setCandidateToDelete] = useState(null);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  const activeFiltersCount = [
+    searchQuery,
+    selectedExpBracket,
+    skillsFilter.reactNext,
+    skillsFilter.typescript,
+    skillsFilter.python,
+    skillsFilter.aws,
+    availability
+  ].filter(Boolean).length;
+
+  useEffect(() => {
+    const fetchJobs = async () => {
+      try {
+        const res = await jobService.getJobs();
+        setJobs(res.data || []);
+      } catch (err) {
+        console.error('Failed to fetch jobs:', err);
+      }
+    };
+    fetchJobs();
+  }, []);
 
   useEffect(() => {
     const fetchCandidates = async () => {
@@ -78,7 +104,8 @@ const CandidateListPage = () => {
           experience: c.experience || '0 Yrs',
           expEdu: `${c.experience || '0 Yrs'} • ${c.education || 'N/A'}`,
           status: c.status || 'Under Review',
-          job: 'All Roles',
+          job: c.jobId?.title || (typeof c.jobId === 'string' ? c.jobId : 'All Roles'),
+          jobId: c.jobId?._id || c.jobId,
           availability: 'Immediate',
           email: c.email,
           phone: c.phone
@@ -95,7 +122,11 @@ const CandidateListPage = () => {
 
   const filteredCandidates = candidates.filter(c => {
     // TC_CL_001
-    if (selectedJobRequisition && selectedJobRequisition !== 'All Roles' && c.job !== selectedJobRequisition) return false;
+    if (selectedJobRequisition && selectedJobRequisition !== 'All Roles') {
+      const matchTitle = c.job === selectedJobRequisition;
+      const matchId = String(c.jobId) === selectedJobRequisition;
+      if (!matchTitle && !matchId) return false;
+    }
 
     // TC_CL_004
     if (poolSearchQuery && !c.name.toLowerCase().includes(poolSearchQuery.toLowerCase()) && !c.title.toLowerCase().includes(poolSearchQuery.toLowerCase())) return false;
@@ -165,11 +196,6 @@ const CandidateListPage = () => {
     }
   };
 
-  const handleOpenInterview = (name) => {
-    setSelectedCandidateForInterview(name);
-    setInterviewModalOpen(true);
-  };
-
   const handleResetFilters = () => {
     setSearchQuery('');
     setPoolSearchQuery('');
@@ -180,19 +206,99 @@ const CandidateListPage = () => {
   };
 
   const handleExportCsv = () => {
-    const count = Object.keys(selectedRows).filter(k => selectedRows[k]).length;
-    showToast(`Exporting ${count} selected candidates to CSV format (SRS REQ-5.4)... Download ready!`, 'success');
+    const selectedIds = Object.keys(selectedRows).filter(k => selectedRows[k]);
+    const candidatesToExport = selectedIds.length > 0
+      ? filteredCandidates.filter(c => selectedRows[c.id])
+      : filteredCandidates;
+
+    if (candidatesToExport.length === 0) {
+      showToast('No candidates available to export.', 'warning');
+      return;
+    }
+
+    const headers = [
+      'Candidate Name',
+      'Job Role',
+      'AI Match (%)',
+      'Recommendation',
+      'Core Skills',
+      'Experience',
+      'Education',
+      'Status',
+      'Email',
+      'Phone'
+    ];
+
+    const rows = candidatesToExport.map(c => [
+      `"${(c.name || '').replace(/"/g, '""')}"`,
+      `"${(c.job || '').replace(/"/g, '""')}"`,
+      c.matchPct ?? 0,
+      `"${(c.recommendationStatus || '').replace(/"/g, '""')}"`,
+      `"${(Array.isArray(c.skills) ? c.skills.join(', ') : c.skills || '').replace(/"/g, '""')}"`,
+      `"${(c.experience || '').replace(/"/g, '""')}"`,
+      `"${(c.education || '').replace(/"/g, '""')}"`,
+      `"${(c.status || '').replace(/"/g, '""')}"`,
+      `"${(c.email || '').replace(/"/g, '""')}"`,
+      `"${(c.phone || '').replace(/"/g, '""')}"`
+    ]);
+
+    const csvContent = '\uFEFF' + [headers.join(','), ...rows.map(r => r.join(','))].join('\r\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    const roleSlug = selectedJobRequisition !== 'All Roles' ? selectedJobRequisition.replace(/\s+/g, '_') : 'candidates';
+    link.download = `${roleSlug}_export_${new Date().toISOString().slice(0, 10)}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+
+    showToast(`Successfully downloaded CSV with ${candidatesToExport.length} candidate(s)!`, 'success');
   };
 
   // ==========================================
-  // RECOMMENDATIONS STATE (Screenshot 1)
+  // CANDIDATE DELETION LOGIC
   // ==========================================
-  const [weights, setWeights] = useState({ experience: 40, skills: 40, culture: 20 });
-  const [promptText, setPromptText] = useState('');
-  const [isRegenerating, setIsRegenerating] = useState(false);
+  const handleOpenDeleteModal = (candidate) => {
+    setCandidateToDelete(candidate);
+    setIsDeleteModalOpen(true);
+  };
+
+  const handleCloseDeleteModal = () => {
+    if (isDeleting) return;
+    setIsDeleteModalOpen(false);
+    setCandidateToDelete(null);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!candidateToDelete) return;
+    try {
+      setIsDeleting(true);
+      await candidateService.deleteCandidate(candidateToDelete.id);
+      setCandidates((prev) => prev.filter((c) => c.id !== candidateToDelete.id));
+      setSelectedRows((prev) => {
+        const next = { ...prev };
+        delete next[candidateToDelete.id];
+        return next;
+      });
+      showToast(`Candidate "${candidateToDelete.name}" deleted successfully.`, 'success');
+      setIsDeleteModalOpen(false);
+      setCandidateToDelete(null);
+    } catch (err) {
+      console.error('Failed to delete candidate:', err);
+      showToast(err.response?.data?.message || 'Failed to delete candidate. Please try again.', 'error');
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  // ==========================================
+  // RECOMMENDATIONS STATE
+  // ==========================================
   const [shortlistedMap, setShortlistedMap] = useState({});
 
-  const topRecommendations = [...candidates]
+  const topRecommendations = [...filteredCandidates]
     .sort((a, b) => b.matchPct - a.matchPct)
     .slice(0, 3);
 
@@ -204,28 +310,15 @@ const CandidateListPage = () => {
     });
   };
 
-  const handleAddTag = (tag) => {
-    setPromptText(prev => (prev ? `${prev} ${tag}` : tag));
-  };
-
-  const handleRegenerate = () => {
-    setIsRegenerating(true);
-    setTimeout(() => {
-      setIsRegenerating(false);
-      showToast('Neural rank engine successfully re-scored candidates based on natural language criteria!', 'success');
-    }, 1200);
-  };
-
   return (
     <div className="page-wrapper">
       {/* Top Tab Switcher */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20, borderBottom: '1px solid #e2e8f0', paddingBottom: 10, flexWrap: 'wrap', gap: 12 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+      <div className="candidate-tabs-header">
+        <div className="candidate-tabs-pills">
           <button
             type="button"
             className={`dossier-tab-btn ${activeTab === 'pipeline' ? 'active' : ''}`}
             onClick={() => setActiveTab('pipeline')}
-            style={{ display: 'flex', alignItems: 'center', gap: 6 }}
           >
             <span>Candidate Pipeline</span>
             <span style={{ fontSize: '0.7rem', padding: '2px 7px', borderRadius: 9999, background: activeTab === 'pipeline' ? 'rgba(255,255,255,0.25)' : '#e2e8f0', color: activeTab === 'pipeline' ? '#ffffff' : '#475569' }}>
@@ -237,7 +330,6 @@ const CandidateListPage = () => {
             type="button"
             className={`dossier-tab-btn ${activeTab === 'recommendations' ? 'active' : ''}`}
             onClick={() => setActiveTab('recommendations')}
-            style={{ display: 'flex', alignItems: 'center', gap: 6 }}
           >
             <Sparkles size={14} />
             <span>AI Recommendations</span>
@@ -251,13 +343,16 @@ const CandidateListPage = () => {
         <div className="job-position-selector">
           <select 
             className="job-selector-btn" 
-            style={{ padding: '6px 12px', appearance: 'none', background: 'transparent', border: 'none', outline: 'none', cursor: 'pointer', color: '#0f172a', fontWeight: 600, fontSize: '0.85rem' }}
+            style={{ padding: '6px 12px', appearance: 'none', background: 'transparent', border: 'none', outline: 'none', cursor: 'pointer', color: '#0f172a', fontWeight: 600, fontSize: '0.85rem', width: '100%' }}
             value={selectedJobRequisition}
             onChange={(e) => setSelectedJobRequisition(e.target.value)}
           >
             <option value="All Roles">All Roles</option>
-            <option value="Sr. Frontend Engineer (Req #FE-802)">Sr. Frontend Engineer (Req #FE-802)</option>
-            <option value="Cloud Architect (Req #CA-201)">Cloud Architect (Req #CA-201)</option>
+            {jobs.map((j) => (
+              <option key={j._id || j.id} value={j.title}>
+                {j.title}
+              </option>
+            ))}
           </select>
         </div>
       </div>
@@ -270,7 +365,7 @@ const CandidateListPage = () => {
           {/* Header Row */}
           <div className="page-title-row" style={{ marginBottom: 20 }}>
             <div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
                 <h1 className="text-2xl font-bold tracking-tight text-slate-900">Candidate Pipeline</h1>
                 <span style={{ background: '#ecfdf5', color: '#059669', fontSize: '0.725rem', fontWeight: 700, padding: '4px 10px', borderRadius: 9999, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
                   <Sparkles size={12} /> AI Model v4.2 Active
@@ -289,12 +384,12 @@ const CandidateListPage = () => {
           </div>
 
           {/* 4 Stat Cards */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 16, marginBottom: 24 }}>
+          <div className="candidate-stats-grid">
             <div className="mini-stat-card">
               <span style={{ fontSize: '0.7rem', fontWeight: 700, color: '#64748b' }}>TOTAL SCREENED</span>
               <div className="stat-num-row">
-                <span className="stat-big-num">1,420</span>
-                <span className="stat-trend">↗ +18% vs. previous sprint</span>
+                <span className="stat-big-num">{candidates.length}</span>
+                <span className="stat-trend" style={{ color: '#059669' }}>● Live Candidate Pool</span>
               </div>
             </div>
 
@@ -302,10 +397,12 @@ const CandidateListPage = () => {
               <span style={{ fontSize: '0.7rem', fontWeight: 700, color: '#64748b' }}>AI SHORTLISTED</span>
               <div className="stat-num-row">
                 <span className="stat-big-num">{filteredCandidates.length}</span>
-                <span style={{ fontSize: '0.725rem', color: '#4f46e5', fontWeight: 700 }}>Top {((filteredCandidates.length / 1420) * 100).toFixed(1)}% of candidate pool</span>
+                <span style={{ fontSize: '0.725rem', color: '#4f46e5', fontWeight: 700 }}>
+                  {candidates.length > 0 ? `${Math.round((filteredCandidates.length / candidates.length) * 100)}% of candidate pool` : '0% of pool'}
+                </span>
               </div>
               <div className="bar-track" style={{ marginTop: 8 }}>
-                <div className="bar-fill" style={{ width: `${Math.min(((filteredCandidates.length / 1420) * 100) * 10, 100)}%` }} />
+                <div className="bar-fill" style={{ width: `${candidates.length > 0 ? Math.min((filteredCandidates.length / candidates.length) * 100, 100) : 0}%` }} />
               </div>
             </div>
 
@@ -332,9 +429,31 @@ const CandidateListPage = () => {
             </div>
           </div>
 
+          {/* Mobile Filter Toggle */}
+          <div className="mobile-filter-bar">
+            <button
+              type="button"
+              onClick={() => setIsMobileFilterOpen(!isMobileFilterOpen)}
+              style={{ background: 'none', border: 'none', display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.8125rem', fontWeight: 700, color: '#0f172a', cursor: 'pointer' }}
+            >
+              <Filter size={15} color="#4f46e5" />
+              <span>Filters {activeFiltersCount > 0 ? `(${activeFiltersCount} Active)` : ''}</span>
+              <ChevronDown size={14} style={{ transform: isMobileFilterOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }} />
+            </button>
+            {activeFiltersCount > 0 && (
+              <button
+                type="button"
+                onClick={handleResetFilters}
+                style={{ background: 'none', border: 'none', color: '#4f46e5', fontSize: '0.75rem', fontWeight: 700, cursor: 'pointer' }}
+              >
+                Reset All
+              </button>
+            )}
+          </div>
+
           {/* Main Grid: Filters Sidebar + Candidate Table */}
           <div className="pipeline-layout">
-            <aside className="filters-sidebar">
+            <aside className={`filters-sidebar ${isMobileFilterOpen ? 'filters-sidebar-mobile-visible' : 'filters-sidebar-mobile-hidden'}`}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
                 <span style={{ fontSize: '0.9rem', fontWeight: 800, color: '#0f172a', display: 'flex', alignItems: 'center', gap: 6 }}>
                   <Filter size={15} /> Filters
@@ -440,9 +559,9 @@ const CandidateListPage = () => {
 
             {/* Right Candidate Table Card */}
             <div className="pipeline-table-card">
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12, paddingBottom: 14, borderBottom: '1px solid #f1f5f9' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                  <div className="input-wrapper" style={{ width: 240 }}>
+              <div className="pool-search-bar-row">
+                <div className="pool-search-input-group">
+                  <div className="input-wrapper" style={{ flex: 1, minWidth: 0 }}>
                     <span className="input-icon" style={{ left: 10 }}>
                       <Search size={14} />
                     </span>
@@ -455,10 +574,10 @@ const CandidateListPage = () => {
                       onChange={(e) => setPoolSearchQuery(e.target.value)}
                     />
                   </div>
-                  <span style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600 }}>{filteredCandidates.length} Results</span>
+                  <span style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600, whiteSpace: 'nowrap' }}>{filteredCandidates.length} Results</span>
                 </div>
 
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <div className="pool-sort-actions">
                   <span style={{ fontSize: '0.75rem', color: '#64748b' }}>Sort:</span>
                   <select 
                     className="job-selector-btn" 
@@ -472,7 +591,7 @@ const CandidateListPage = () => {
                   </select>
                   <button
                     type="button"
-                    className="rounded-lg border border-slate-200 bg-white p-2 text-sm font-semibold text-slate-600 transition hover:bg-slate-50 flex items-center justify-center"
+                    className="rounded-lg border border-slate-200 bg-white p-2 text-sm font-semibold text-slate-600 transition hover:bg-slate-50 flex items-center justify-center flex-shrink-0"
                     onClick={handleExportCsv}
                     title="Export CSV (REQ-5.4)"
                   >
@@ -481,7 +600,8 @@ const CandidateListPage = () => {
                 </div>
               </div>
 
-              <div style={{ overflowX: 'auto' }}>
+              {/* Desktop Table View */}
+              <div className="desktop-table-view table-responsive-wrapper">
                 <table className="candidate-data-table">
                   <thead>
                     <tr>
@@ -547,22 +667,23 @@ const CandidateListPage = () => {
                           </span>
                         </td>
                         <td style={{ textAlign: 'right' }}>
-                          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, justifyContent: 'flex-end' }}>
                             <button
                               type="button"
                               className="link-button"
-                              style={{ fontSize: '0.75rem' }}
+                              style={{ fontSize: '0.75rem', fontWeight: 700 }}
                               onClick={() => navigate(`/candidates/${candidate.id}`)}
                             >
                               View Profile
                             </button>
                             <button
                               type="button"
-                              className="pill-btn active"
-                              style={{ padding: '4px 10px', fontSize: '0.725rem' }}
-                              onClick={() => handleOpenInterview(candidate.name)}
+                              onClick={() => handleOpenDeleteModal(candidate)}
+                              className="p-1 rounded-md text-slate-400 hover:text-red-600 hover:bg-red-50 transition cursor-pointer"
+                              title={`Delete candidate ${candidate.name}`}
+                              aria-label={`Delete ${candidate.name}`}
                             >
-                              Invite
+                              <Trash2 size={15} />
                             </button>
                           </div>
                         </td>
@@ -572,10 +693,77 @@ const CandidateListPage = () => {
                 </table>
               </div>
 
+              {/* Mobile Candidate Cards View (visible on mobile screens <= 768px) */}
+              <div className="mobile-candidates-list">
+                {paginatedCandidates.map(candidate => (
+                  <div key={`mob-${candidate.id}`} className="mobile-candidate-card">
+                    <div className="mobile-candidate-card-header">
+                      <div className="mobile-candidate-profile">
+                        <input
+                          type="checkbox"
+                          checked={!!selectedRows[candidate.id]}
+                          onChange={() => handleSelectRow(candidate.id)}
+                        />
+                        <img src={candidate.avatar} alt={candidate.name} className="mobile-candidate-avatar" />
+                        <div className="mobile-candidate-info">
+                          <div className="mobile-candidate-name">{candidate.name}</div>
+                          <div className="mobile-candidate-title">{candidate.title}</div>
+                        </div>
+                      </div>
+                      <span className={`status-pill ${candidate.status === 'Shortlisted' ? 'shortlisted' : candidate.status === 'Under Review' ? 'under-review' : 'interviewing'}`}>
+                        {candidate.status}
+                      </span>
+                    </div>
+
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 4, background: '#f8fafc', padding: 8, borderRadius: 8 }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <span style={{ fontSize: '0.725rem', fontWeight: 700, color: '#059669', display: 'inline-flex', alignItems: 'center', gap: 3 }}>
+                          <Sparkles size={12} /> {candidate.matchPct}% AI Match
+                        </span>
+                        <span style={{ fontSize: '0.7rem', color: '#64748b' }}>{candidate.expEdu}</span>
+                      </div>
+                      <div className="bar-track">
+                        <div className="bar-fill" style={{ width: `${candidate.matchPct}%` }} />
+                      </div>
+                    </div>
+
+                    <div className="mobile-candidate-skills">
+                      {candidate.skills.slice(0, 4).map(s => (
+                        <span key={s} className="token-pill" style={{ padding: '2px 7px', fontSize: '0.6875rem' }}>
+                          {s}
+                        </span>
+                      ))}
+                    </div>
+
+                    <div className="mobile-candidate-footer">
+                      <span style={{ fontSize: '0.7rem', color: '#64748b' }}>{candidate.job}</span>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <button
+                          type="button"
+                          className="rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-blue-700"
+                          onClick={() => navigate(`/candidates/${candidate.id}`)}
+                        >
+                          View Profile
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleOpenDeleteModal(candidate)}
+                          className="p-1.5 rounded-lg border border-red-200 text-red-600 hover:bg-red-50 transition flex items-center justify-center cursor-pointer"
+                          title={`Delete candidate ${candidate.name}`}
+                          aria-label={`Delete ${candidate.name}`}
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12, marginTop: 18, paddingTop: 14, borderTop: '1px solid #f1f5f9' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap' }}>
                   <span style={{ fontSize: '0.75rem', color: '#64748b' }}>
-                    Showing {(currentPage - 1) * itemsPerPage + 1} to {Math.min(currentPage * itemsPerPage, filteredCandidates.length)} of {filteredCandidates.length} shortlisted candidates
+                    Showing {(currentPage - 1) * itemsPerPage + 1} to {Math.min(currentPage * itemsPerPage, filteredCandidates.length)} of {filteredCandidates.length} candidates
                   </span>
                   <button
                     type="button"
@@ -583,16 +771,7 @@ const CandidateListPage = () => {
                     style={{ fontSize: '0.75rem' }}
                     onClick={handleExportCsv}
                   >
-                    Bulk Export
-                  </button>
-                  <span>•</span>
-                  <button
-                    type="button"
-                    className="link-button"
-                    style={{ fontSize: '0.75rem' }}
-                    onClick={() => handleOpenInterview('Selected Candidates')}
-                  >
-                    Move to Interview
+                    Bulk Export CSV
                   </button>
                 </div>
 
@@ -652,93 +831,45 @@ const CandidateListPage = () => {
             </div>
           </div>
 
-          {/* Top Section: Weighting Card + 3 Stats */}
-          <div className="recommendations-top-grid">
-            <div className="weighting-card">
-              <div className="weighting-header">
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <div style={{ width: 28, height: 28, borderRadius: 8, background: '#f5f3ff', color: '#4f46e5', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <Sparkles size={16} />
-                  </div>
-                  <h3 style={{ fontSize: '0.95rem', fontWeight: 800, color: '#0f172a' }}>Vector Weighting Distribution</h3>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setWeightsModalOpen(true)}
-                  style={{ background: 'none', border: 'none', color: '#4f46e5', fontSize: '0.75rem', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }}
-                >
-                  <Sliders size={13} />
-                  <span>Customize Weights</span>
-                </button>
-              </div>
-
-              <div className="weight-split-bar">
-                <div className="bar-exp" style={{ width: `${weights.experience}%` }} />
-                <div className="bar-skills" style={{ width: `${weights.skills}%` }} />
-                <div className="bar-culture" style={{ width: `${weights.culture}%` }} />
-              </div>
-
-              <div className="weight-labels-row">
-                <div className="weight-item-dot">
-                  <span className="lbl" style={{ color: '#4f46e5' }}>● Experience</span>
-                  <span className="pct">{weights.experience}%</span>
-                </div>
-                <div className="weight-item-dot">
-                  <span className="lbl" style={{ color: '#3b82f6' }}>● Skills & Mastery</span>
-                  <span className="pct">{weights.skills}%</span>
-                </div>
-                <div className="weight-item-dot">
-                  <span className="lbl" style={{ color: '#10b981' }}>● Culture & Fit</span>
-                  <span className="pct">{weights.culture}%</span>
-                </div>
-              </div>
-
-              <div className="semantic-tokens-row">
-                <span style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 700, textTransform: 'uppercase' }}>Active Semantic Tokens:</span>
-                <span className="token-pill">📍 Next.js 14 App Router</span>
-                <span className="token-pill">💻 TypeScript Strict</span>
-                <span className="token-pill">📦 Micro-Frontends</span>
-                <span style={{ marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: 4, color: '#059669', fontSize: '0.7rem', fontWeight: 700 }}>
-                  <CheckCircle2 size={13} /> Triple Validated
-                </span>
-              </div>
-            </div>
-
+          {/* Top Section: Live Candidate Pool Stats */}
+          <div className="candidate-stats-grid">
             <div className="mini-stat-card">
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                <span style={{ fontSize: '0.7rem', fontWeight: 700, color: '#64748b' }}>SCREENED CVS</span>
+                <span style={{ fontSize: '0.7rem', fontWeight: 700, color: '#64748b' }}>ACTIVE CANDIDATES</span>
                 <div style={{ width: 32, height: 32, borderRadius: 8, background: '#eff6ff', color: '#3b82f6', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   <FileText size={16} />
                 </div>
               </div>
               <div className="stat-num-row">
-                <span className="stat-big-num">142</span>
-                <span className="stat-trend">↑+38 today</span>
+                <span className="stat-big-num">{filteredCandidates.length}</span>
+                <span className="stat-trend" style={{ color: '#059669' }}>● In Selected Role</span>
               </div>
             </div>
 
             <div className="mini-stat-card">
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                <span style={{ fontSize: '0.7rem', fontWeight: 700, color: '#64748b' }}>AI SHORTLISTED</span>
+                <span style={{ fontSize: '0.7rem', fontWeight: 700, color: '#64748b' }}>TOP RECOMMENDATIONS</span>
                 <div style={{ width: 32, height: 32, borderRadius: 8, background: '#eef2ff', color: '#4f46e5', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   <Award size={16} />
                 </div>
               </div>
               <div className="stat-num-row">
-                <span className="stat-big-num">5</span>
-                <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#4f46e5', background: '#eef2ff', padding: '2px 8px', borderRadius: 9999 }}>Top 3.5%</span>
+                <span className="stat-big-num">{topRecommendations.length}</span>
+                <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#4f46e5', background: '#eef2ff', padding: '2px 8px', borderRadius: 9999 }}>Ranked</span>
               </div>
             </div>
 
             <div className="mini-stat-card">
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                <span style={{ fontSize: '0.7rem', fontWeight: 700, color: '#64748b' }}>AVG TOP SCORE</span>
+                <span style={{ fontSize: '0.7rem', fontWeight: 700, color: '#64748b' }}>AVG MATCH SCORE</span>
                 <div style={{ width: 32, height: 32, borderRadius: 8, background: '#ecfdf5', color: '#10b981', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   <ShieldCheck size={16} />
                 </div>
               </div>
               <div className="stat-num-row">
-                <span className="stat-big-num">93.6%</span>
+                <span className="stat-big-num">
+                  {topRecommendations.length > 0 ? Math.round(topRecommendations.reduce((acc, c) => acc + c.matchPct, 0) / topRecommendations.length) : 0}%
+                </span>
                 <span style={{ fontSize: '0.725rem', fontWeight: 700, color: '#059669' }}>High Confidence</span>
               </div>
             </div>
@@ -760,7 +891,6 @@ const CandidateListPage = () => {
           {/* 3 Ranked Candidate Cards */}
           <div className="ranked-cards-grid">
             {topRecommendations.map((cand, idx) => {
-              const isShortlisted = !!shortlistedMap[cand.id];
               const badgeTag = idx === 0 ? 'top-1' : idx === 1 ? 'strong' : 'potential';
               const badgeText = idx === 0 ? '#1 AI TOP CHOICE' : idx === 1 ? '#2 STRONG TECHNICAL FIT' : '#3 HIGH POTENTIAL';
 
@@ -832,29 +962,11 @@ const CandidateListPage = () => {
                     <button
                       type="button"
                       className="rounded-lg bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-700 flex items-center justify-center gap-2"
-                      style={{ flex: 1, height: 42, fontSize: '0.8125rem' }}
-                      onClick={() => handleOpenInterview(cand.name)}
-                    >
-                      <Calendar size={14} />
-                      <span>Invite</span>
-                    </button>
-                    <button
-                      type="button"
-                      className="rounded-lg border border-slate-200 bg-white p-2 text-sm font-semibold text-slate-600 transition hover:bg-slate-50 flex items-center justify-center"
-                      style={{ flex: 1, height: 42, fontSize: '0.8125rem' }}
+                      style={{ flex: 1, width: '100%', height: 42, fontSize: '0.8125rem' }}
                       onClick={() => navigate(`/candidates/${cand.id}`)}
                     >
                       <UserCheck size={14} />
-                      <span>Profile</span>
-                    </button>
-                    <button
-                      type="button"
-                      className="rounded-lg border border-slate-200 bg-white p-2 text-sm font-semibold text-slate-600 transition hover:bg-slate-50 flex items-center justify-center"
-                      style={{ width: 42, height: 42, padding: 0, color: isShortlisted ? '#10b981' : undefined }}
-                      onClick={() => handleToggleShortlist(cand.id)}
-                      title={isShortlisted ? 'Shortlisted' : 'Add to Shortlist'}
-                    >
-                      <CheckCircle2 size={16} />
+                      <span>View Dossier Profile</span>
                     </button>
                   </div>
                 </div>
@@ -862,48 +974,50 @@ const CandidateListPage = () => {
             })}
           </div>
 
-          {/* Discrepancy Matrix & Refinement */}
-          <div className="matrix-refinement-grid">
-            <div className="matrix-card">
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          {/* Discrepancy Matrix */}
+          <div style={{ marginTop: 24 }}>
+            <div className="matrix-card" style={{ width: '100%' }}>
+              <div className="matrix-card-header">
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <div style={{ width: 28, height: 28, borderRadius: 8, background: '#f5f3ff', color: '#4f46e5', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <div style={{ width: 28, height: 28, borderRadius: 8, background: '#f5f3ff', color: '#4f46e5', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                     <Sparkles size={16} />
                   </div>
                   <h3 style={{ fontSize: '0.95rem', fontWeight: 800, color: '#0f172a' }}>Neural Vector Discrepancy Matrix</h3>
                 </div>
-                <span style={{ fontSize: '0.7rem', fontWeight: 700, color: '#059669', background: '#ecfdf5', padding: '3px 8px', borderRadius: 9999 }}>
+                <span style={{ fontSize: '0.7rem', fontWeight: 700, color: '#059669', background: '#ecfdf5', padding: '3px 8px', borderRadius: 9999, whiteSpace: 'nowrap' }}>
                   ● Deterministic Match
                 </span>
               </div>
 
-              <table className="matrix-table">
-                <thead>
-                  <tr>
-                    <th>Candidate</th>
-                    <th>Semantic Match</th>
-                    <th>Technical Skills</th>
-                    <th>Experience</th>
-                    <th>Recommendation</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {topRecommendations.map((cand) => (
-                    <tr key={`matrix-${cand.id}`}>
-                      <td>
-                        <span className="matrix-dot-green" />
-                        <strong>{cand.name}</strong>
-                      </td>
-                      <td>{cand.matchPct}%</td>
-                      <td>{cand.skills.slice(0, 3).join(', ') || 'Full Stack'}</td>
-                      <td style={{ color: '#059669', fontWeight: 700 }}>{cand.experience}</td>
-                      <td style={{ fontWeight: 700, color: cand.matchPct >= 90 ? '#10b981' : '#3b82f6' }}>
-                        {cand.recommendationStatus}
-                      </td>
+              <div className="matrix-table-wrapper">
+                <table className="matrix-table">
+                  <thead>
+                    <tr>
+                      <th>Candidate</th>
+                      <th>Semantic Match</th>
+                      <th>Technical Skills</th>
+                      <th>Experience</th>
+                      <th>Recommendation</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody>
+                    {topRecommendations.map((cand) => (
+                      <tr key={`matrix-${cand.id}`}>
+                        <td>
+                          <span className="matrix-dot-green" />
+                          <strong>{cand.name}</strong>
+                        </td>
+                        <td>{cand.matchPct}%</td>
+                        <td>{cand.skills.slice(0, 3).join(', ') || 'Full Stack'}</td>
+                        <td style={{ color: '#059669', fontWeight: 700 }}>{cand.experience}</td>
+                        <td style={{ fontWeight: 700, color: cand.matchPct >= 90 ? '#10b981' : '#3b82f6' }}>
+                          {cand.recommendationStatus}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
 
               <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 10, padding: 12, marginTop: 16, fontSize: '0.725rem', color: '#64748b', lineHeight: 1.45 }}>
                 <CheckCircle2 size={16} color="#059669" style={{ flexShrink: 0, marginTop: 1 }} />
@@ -912,70 +1026,17 @@ const CandidateListPage = () => {
                 </div>
               </div>
             </div>
-
-            <div className="refinement-card">
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
-                <Sparkles size={18} color="#4f46e5" />
-                <h3 style={{ fontSize: '0.95rem', fontWeight: 800, color: '#0f172a' }}>AI Matching Refinement</h3>
-              </div>
-              <p style={{ fontSize: '0.75rem', color: '#64748b', lineHeight: 1.45 }}>
-                Need more variations or specialized focus? Re-run neural matching with custom recruiter criteria in natural language.
-              </p>
-
-              <textarea
-                className="prompt-textarea"
-                placeholder="e.g. Prioritize candidates who have hands-on experience refactoring massive legacy codebases into server components and state machines..."
-                value={promptText}
-                onChange={e => setPromptText(e.target.value)}
-              />
-
-              <div style={{ display: 'flex', justifyContent: 'flex-end', fontSize: '0.6875rem', color: '#64748b', marginBottom: 8 }}>
-                <span>Prompt Optimizer: <strong style={{ color: '#10b981' }}>Active</strong></span>
-              </div>
-
-              <div className="quick-tags-row">
-                <button type="button" className="quick-tag-btn" onClick={() => handleAddTag('Prioritize Microfrontends')}>
-                  + Prioritize Microfrontends
-                </button>
-                <button type="button" className="quick-tag-btn" onClick={() => handleAddTag('Startup Leadership Exp')}>
-                  + Startup Leadership Exp
-                </button>
-                <button type="button" className="quick-tag-btn" onClick={() => handleAddTag('Sub-second LCP Focus')}>
-                  + Sub-second LCP Focus
-                </button>
-              </div>
-
-              <button
-                type="button"
-                className="rounded-lg bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-700 flex items-center justify-center gap-2"
-                style={{ marginTop: 'auto', height: 44 }}
-                onClick={handleRegenerate}
-                disabled={isRegenerating}
-              >
-                <RefreshCw size={15} className={isRegenerating ? 'spinner' : ''} />
-                <span>{isRegenerating ? 'Neural Rescoring...' : 'Regenerate Recommendations'}</span>
-              </button>
-            </div>
           </div>
         </div>
       )}
 
-      {/* Modals */}
-      <CustomizeWeightsModal
-        isOpen={weightsModalOpen}
-        onClose={() => setWeightsModalOpen(false)}
-        weights={weights}
-        onSaveWeights={(newWeights) => {
-          setWeights(newWeights);
-          showToast('Vector weights applied! Neural ranking rebalanced.', 'success');
-        }}
-      />
-
-      <ScheduleInterviewModal
-        isOpen={interviewModalOpen}
-        onClose={() => setInterviewModalOpen(false)}
-        candidateName={selectedCandidateForInterview}
-        onSuccess={(msg) => showToast(msg, 'success')}
+      {/* Delete Candidate Confirmation Modal */}
+      <DeleteCandidateModal
+        isOpen={isDeleteModalOpen}
+        onClose={handleCloseDeleteModal}
+        onConfirm={handleConfirmDelete}
+        candidateName={candidateToDelete?.name}
+        isDeleting={isDeleting}
       />
     </div>
   );
