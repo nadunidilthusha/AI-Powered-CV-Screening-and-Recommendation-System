@@ -23,7 +23,7 @@ const HrLayout = () => {
           searchPlaceholder="Search candidates, job postings..."
           user={{
             name: user?.name ?? 'Nadeesha R.',
-            role: 'HR Manager',
+            role: user?.role === 'admin' ? 'Administrator' : 'HR Manager',
             initials: user?.initials ?? 'NR',
             avatarUrl: user?.avatarUrl ?? null,
           }}
