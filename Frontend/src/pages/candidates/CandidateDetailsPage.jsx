@@ -78,7 +78,10 @@ const CandidateDetailsPage = () => {
     if (url && (url.startsWith('http://') || url.startsWith('https://'))) {
       window.open(url, '_blank');
     } else if (url && url !== 'dummy.pdf') {
-      window.open(`http://localhost:5000/${url.replace(/^\//, '')}`, '_blank');
+      const apiUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api';
+      const backendBase = apiUrl.replace(/\/api\/?$/, '');
+      const cleanPath = url.replace(/^\//, '');
+      window.open(`${backendBase}/${cleanPath}`, '_blank');
     } else {
       showToast('No external CV document attached for this candidate.', 'info');
     }

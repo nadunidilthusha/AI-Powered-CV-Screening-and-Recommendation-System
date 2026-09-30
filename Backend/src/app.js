@@ -1,3 +1,5 @@
+const path = require('path');
+const fs = require('fs');
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
@@ -15,7 +17,11 @@ const app = express();
 // ─────────────────────────────────────────────────────────
 // Security & core middleware
 // ─────────────────────────────────────────────────────────
-app.use(helmet());
+app.use(
+  helmet({
+    crossOriginResourcePolicy: { policy: 'cross-origin' },
+  })
+);
 app.use(
   cors({
     origin: env.clientUrl,
@@ -69,6 +75,21 @@ if (env.nodeEnv === 'development') {
     next();
   });
 }
+
+// ─────────────────────────────────────────────────────────
+// Static Files (CV Uploads)
+// ─────────────────────────────────────────────────────────
+const uploadDirName = env.uploadDir || 'uploads';
+const resolvedUploadPath = fs.existsSync(path.join(process.cwd(), uploadDirName))
+  ? path.join(process.cwd(), uploadDirName)
+  : path.join(__dirname, '..', uploadDirName);
+
+if (!fs.existsSync(resolvedUploadPath)) {
+  fs.mkdirSync(resolvedUploadPath, { recursive: true });
+}
+
+app.use('/uploads', express.static(resolvedUploadPath));
+app.use('/api/uploads', express.static(resolvedUploadPath));
 
 // ─────────────────────────────────────────────────────────
 // Routes
