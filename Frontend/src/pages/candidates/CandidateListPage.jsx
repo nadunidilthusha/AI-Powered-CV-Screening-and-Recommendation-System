@@ -6,10 +6,11 @@ import {
   Search, UploadCloud, Download, Filter, 
   ChevronDown, Sparkles, Sliders, CheckCircle2, Calendar, 
   UserCheck, Scale, RefreshCw, Send, ShieldCheck, FileText, 
-  Award, Check, ExternalLink, Layers 
+  Award, Check, ExternalLink, Layers, Trash2 
 } from 'lucide-react';
 import candidateService from '../../services/candidateService';
 import jobService from '../../services/jobService';
+import DeleteCandidateModal from '../../components/modals/DeleteCandidateModal';
 import '../../styles/pages.css';
 
 // Normalises a value that may be a string ("React, Node") or an array
@@ -56,6 +57,11 @@ const CandidateListPage = () => {
   const [candidates, setCandidates] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isMobileFilterOpen, setIsMobileFilterOpen] = useState(false);
+
+  // Delete Candidate Modal State
+  const [candidateToDelete, setCandidateToDelete] = useState(null);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const activeFiltersCount = [
     searchQuery,
@@ -249,6 +255,42 @@ const CandidateListPage = () => {
     URL.revokeObjectURL(url);
 
     showToast(`Successfully downloaded CSV with ${candidatesToExport.length} candidate(s)!`, 'success');
+  };
+
+  // ==========================================
+  // CANDIDATE DELETION LOGIC
+  // ==========================================
+  const handleOpenDeleteModal = (candidate) => {
+    setCandidateToDelete(candidate);
+    setIsDeleteModalOpen(true);
+  };
+
+  const handleCloseDeleteModal = () => {
+    if (isDeleting) return;
+    setIsDeleteModalOpen(false);
+    setCandidateToDelete(null);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!candidateToDelete) return;
+    try {
+      setIsDeleting(true);
+      await candidateService.deleteCandidate(candidateToDelete.id);
+      setCandidates((prev) => prev.filter((c) => c.id !== candidateToDelete.id));
+      setSelectedRows((prev) => {
+        const next = { ...prev };
+        delete next[candidateToDelete.id];
+        return next;
+      });
+      showToast(`Candidate "${candidateToDelete.name}" deleted successfully.`, 'success');
+      setIsDeleteModalOpen(false);
+      setCandidateToDelete(null);
+    } catch (err) {
+      console.error('Failed to delete candidate:', err);
+      showToast(err.response?.data?.message || 'Failed to delete candidate. Please try again.', 'error');
+    } finally {
+      setIsDeleting(false);
+    }
   };
 
   // ==========================================
@@ -625,14 +667,25 @@ const CandidateListPage = () => {
                           </span>
                         </td>
                         <td style={{ textAlign: 'right' }}>
-                          <button
-                            type="button"
-                            className="link-button"
-                            style={{ fontSize: '0.75rem', fontWeight: 700 }}
-                            onClick={() => navigate(`/candidates/${candidate.id}`)}
-                          >
-                            View Profile
-                          </button>
+                          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, justifyContent: 'flex-end' }}>
+                            <button
+                              type="button"
+                              className="link-button"
+                              style={{ fontSize: '0.75rem', fontWeight: 700 }}
+                              onClick={() => navigate(`/candidates/${candidate.id}`)}
+                            >
+                              View Profile
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleOpenDeleteModal(candidate)}
+                              className="p-1 rounded-md text-slate-400 hover:text-red-600 hover:bg-red-50 transition cursor-pointer"
+                              title={`Delete candidate ${candidate.name}`}
+                              aria-label={`Delete ${candidate.name}`}
+                            >
+                              <Trash2 size={15} />
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     ))}
@@ -640,7 +693,7 @@ const CandidateListPage = () => {
                 </table>
               </div>
 
-              {/* Mobile Candidate Cards View (visible on mobile screens <= 640px) */}
+              {/* Mobile Candidate Cards View (visible on mobile screens <= 768px) */}
               <div className="mobile-candidates-list">
                 {paginatedCandidates.map(candidate => (
                   <div key={`mob-${candidate.id}`} className="mobile-candidate-card">
@@ -684,13 +737,24 @@ const CandidateListPage = () => {
 
                     <div className="mobile-candidate-footer">
                       <span style={{ fontSize: '0.7rem', color: '#64748b' }}>{candidate.job}</span>
-                      <button
-                        type="button"
-                        className="rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-blue-700"
-                        onClick={() => navigate(`/candidates/${candidate.id}`)}
-                      >
-                        View Profile
-                      </button>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <button
+                          type="button"
+                          className="rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-blue-700"
+                          onClick={() => navigate(`/candidates/${candidate.id}`)}
+                        >
+                          View Profile
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleOpenDeleteModal(candidate)}
+                          className="p-1.5 rounded-lg border border-red-200 text-red-600 hover:bg-red-50 transition flex items-center justify-center cursor-pointer"
+                          title={`Delete candidate ${candidate.name}`}
+                          aria-label={`Delete ${candidate.name}`}
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
                     </div>
                   </div>
                 ))}
@@ -965,6 +1029,15 @@ const CandidateListPage = () => {
           </div>
         </div>
       )}
+
+      {/* Delete Candidate Confirmation Modal */}
+      <DeleteCandidateModal
+        isOpen={isDeleteModalOpen}
+        onClose={handleCloseDeleteModal}
+        onConfirm={handleConfirmDelete}
+        candidateName={candidateToDelete?.name}
+        isDeleting={isDeleting}
+      />
     </div>
   );
 };
