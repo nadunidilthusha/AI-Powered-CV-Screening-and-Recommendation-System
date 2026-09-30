@@ -5,14 +5,33 @@ import Navbar from '../common/Navbar/Navbar';
 import Footer from '../common/Footer/Footer';
 import useAuth from '../../hooks/useAuth';
 
+const roleLabel = (role) => {
+  if (role === 'admin') return 'Administrator';
+  if (role === 'hr_manager') return 'HR Manager';
+  return 'Administrator';
+};
+
+const initialsFromName = (name) => {
+  if (!name) return 'AD';
+  return name
+    .split(' ')
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((w) => w[0].toUpperCase())
+    .join('');
+};
+
 const AdminLayout = () => {
   const { user } = useAuth();
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
 
+  const displayName = user?.name || user?.fullName || 'Admin User';
+  const role = user?.role;
+
   return (
     <div className="flex min-h-screen bg-slate-50">
       <Sidebar
-        role={user?.role ?? 'admin'}
+        role={role ?? 'admin'}
         isOpen={isMobileSidebarOpen}
         onClose={() => setIsMobileSidebarOpen(false)}
       />
@@ -21,9 +40,9 @@ const AdminLayout = () => {
           pageTitle="Dashboard"
           searchPlaceholder="Search candidates, users, logs..."
           user={{
-            name: user?.name ?? 'Admin User',
-            role: 'Administrator',
-            initials: user?.initials ?? 'AD',
+            name: displayName,
+            role: roleLabel(role),
+            initials: user?.initials ?? initialsFromName(displayName),
             avatarUrl: user?.avatarUrl ?? null,
           }}
           onToggleSidebar={() => setIsMobileSidebarOpen((prev) => !prev)}
